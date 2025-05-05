@@ -1,0 +1,1052 @@
+*&---------------------------------------------------------------------*
+*& Include          MZFCFI0010F01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Form SET_HEADER_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_HEADER_FCAT .
+
+  DATA: LS_HEADER_FCAT TYPE LVC_S_FCAT.
+
+  LS_HEADER_FCAT-FIELDNAME = 'LIGHT'.
+  LS_HEADER_FCAT-COLTEXT = '전표 상태'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+  CLEAR LS_HEADER_FCAT.
+  LS_HEADER_FCAT-FIELDNAME = 'BELNR'.
+  LS_HEADER_FCAT-COLTEXT = '전표 번호'.
+  LS_HEADER_FCAT-EMPHASIZE = 'C410'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+  CLEAR LS_HEADER_FCAT.
+  LS_HEADER_FCAT-FIELDNAME = 'GJAHR'.
+  LS_HEADER_FCAT-COLTEXT = '회계 연도'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+
+  CLEAR LS_HEADER_FCAT.
+  LS_HEADER_FCAT-FIELDNAME = 'BLDAT'.
+  LS_HEADER_FCAT-COLTEXT = '증빙 일자'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+  CLEAR LS_HEADER_FCAT.
+  LS_HEADER_FCAT-FIELDNAME = 'BLART'.
+  LS_HEADER_FCAT-COLTEXT = '전표 유형'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+  CLEAR LS_HEADER_FCAT.
+  LS_HEADER_FCAT-FIELDNAME = 'BUDAT'.
+  LS_HEADER_FCAT-COLTEXT = '전기 일자'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+  CLEAR LS_HEADER_FCAT.
+  LS_HEADER_FCAT-FIELDNAME = 'BKTXT'.
+  LS_HEADER_FCAT-COLTEXT = '적요'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+  CLEAR LS_HEADER_FCAT.
+  LS_HEADER_FCAT-FIELDNAME = 'REVTXT'.
+  LS_HEADER_FCAT-COLTEXT = '반려 사유'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+
+  CLEAR LS_HEADER_FCAT.
+  LS_HEADER_FCAT-FIELDNAME = 'PERNR'.
+  LS_HEADER_FCAT-COLTEXT = '담당자'.
+  LS_HEADER_FCAT-HOTSPOT = 'X'.
+  APPEND LS_HEADER_FCAT TO GT_HEADER_FCAT.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SAVE_DOCUMENT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SAVE_DOCUMENT .
+
+
+  DATA: LV_DOCUMENT_NUMBER TYPE CHAR10,
+        LV_EMPLOYEE        TYPE ZTFC_SDT040.
+
+* 생성자 사원 정보 조회
+  SELECT SINGLE *
+    FROM ZTFC_SDT040
+    INTO LV_EMPLOYEE
+    WHERE ID = SY-UNAME.
+
+* 차대변 금액 일치 검증
+  IF ZSFC_FI_0010-CREDIT <> ZSFC_FI_0010-DEBIT.
+    MESSAGE I105(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+  ELSEIF ZTFC_FIT020-BLDAT IS INITIAL.
+    MESSAGE S106(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+  ELSEIF LINES( GT_ITEM_CREATE_DATA ) = 0.
+    MESSAGE S107(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+  ELSE.
+    CALL FUNCTION 'NUMBER_GET_NEXT'
+      EXPORTING
+        NR_RANGE_NR = '01'
+        OBJECT      = 'ZFC_FI_01'
+        TOYEAR      = SY-DATUM+0(4)
+      IMPORTING
+        NUMBER      = LV_DOCUMENT_NUMBER.
+    IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+* 전표 헤더 Insert
+    ZTFC_FIT020-BELNR = LV_DOCUMENT_NUMBER.
+    ZTFC_FIT020-BKSTAT = '0'.
+    ZTFC_FIT020-PERNR = LV_EMPLOYEE-PERNR.
+    ZTFC_FIT020-ERNAME = LV_EMPLOYEE-ERNAME.
+    ZTFC_FIT020-ERDAT = SY-DATUM.
+    ZTFC_FIT020-ERZET = SY-UZEIT.
+    INSERT ZTFC_FIT020 FROM ZTFC_FIT020.
+
+    IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+* 전표 아이템 Insert
+    LOOP AT GT_ITEM_CREATE_DATA INTO GS_ITEM_CREATE_DATA.
+      GS_ITEM_CREATE_DATA-BELNR = LV_DOCUMENT_NUMBER.
+      INSERT ZTFC_FIT030 FROM GS_ITEM_CREATE_DATA.
+    ENDLOOP.
+
+    IF SY-SUBRC = 0.
+      MESSAGE S125(ZFC_DUMPTRUCK).
+      CLEAR ZTFC_FIT020.
+      CLEAR GT_ITEM_CREATE_DATA.
+      LEAVE TO SCREEN 0.
+    ELSE.
+      ROLLBACK WORK.
+    ENDIF.
+
+    CALL METHOD GO_HEADER_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+    CLEAR ZSFC_FI_0010.
+  ENDIF.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form ITEM_CREATE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM ITEM_CREATE .
+  IF ZSFC_FI_0020-SKANR IS INITIAL.
+    MESSAGE S109(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+  ELSEIF ZSFC_FI_0020-WRBTR IS INITIAL.
+    MESSAGE S110(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+  ELSE.
+
+
+
+    ZSFC_FI_0020-KOART = 'S'.
+    CASE 'X'.
+      WHEN ZSFC_FI_0020-DEBIT_RBT.
+        ZSFC_FI_0020-BSCHL = 40.
+      WHEN ZSFC_FI_0020-CREDIT_RBT.
+        ZSFC_FI_0020-BSCHL = 50.
+    ENDCASE.
+
+* 화면 입력 값 Work Area로 이동
+    MOVE-CORRESPONDING ZSFC_FI_0020 TO GS_ITEM_CREATE_DATA.
+
+* 입력된 전기키로 차대변 값 조회
+    SELECT SINGLE SHKZG
+      FROM ZTFC_FIT100
+      INTO GS_ITEM_CREATE_DATA-SHKZG
+      WHERE BSCHL = GS_ITEM_CREATE_DATA-BSCHL.
+
+* 입력된 계정과목코드로 계정과목명 조회
+    SELECT SINGLE GLTXT
+      FROM ZTFC_FIT010
+      INTO GS_ITEM_CREATE_DATA-GLTXT
+      WHERE SKANR = GS_ITEM_CREATE_DATA-SKANR.
+
+* 차대변 총금액 갱신 및 차변/대변 금액 갱신
+    CASE GS_ITEM_CREATE_DATA-SHKZG.
+      WHEN 'S'.
+        ADD GS_ITEM_CREATE_DATA-WRBTR TO ZSFC_FI_0010-DEBIT.
+        GS_ITEM_CREATE_DATA-DEBIT = GS_ITEM_CREATE_DATA-WRBTR.
+      WHEN 'H'.
+        ADD GS_ITEM_CREATE_DATA-WRBTR TO ZSFC_FI_0010-CREDIT.
+        GS_ITEM_CREATE_DATA-CREDIT = GS_ITEM_CREATE_DATA-WRBTR.
+    ENDCASE.
+    ZSFC_FI_0010-DIFFERENCE = ABS( ZSFC_FI_0010-DEBIT - ZSFC_FI_0010-CREDIT ).
+
+    APPEND GS_ITEM_CREATE_DATA TO GT_ITEM_CREATE_DATA.
+
+* 전표 아이템 번호 다시 번호 라벨링
+    LOOP AT GT_ITEM_CREATE_DATA INTO GS_ITEM_CREATE_DATA.
+      GS_ITEM_CREATE_DATA-BUZEI = SY-TABIX.
+      MODIFY GT_ITEM_CREATE_DATA FROM GS_ITEM_CREATE_DATA.
+    ENDLOOP.
+
+    CLEAR ZSFC_FI_0020.
+  ENDIF.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_FCAT .
+
+  DATA: LS_ITEM_FCAT TYPE LVC_S_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'BUZEI'.
+  LS_ITEM_FCAT-COLTEXT = '아이템번호'.
+  LS_ITEM_FCAT-KEY = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SKANR'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목 코드'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'GLTXT'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'DEBIT'.
+  LS_ITEM_FCAT-COLTEXT = '차변 금액'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_FCAT-REF_FIELD = 'WRBTR'.
+  LS_ITEM_FCAT-DO_SUM = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CREDIT'.
+  LS_ITEM_FCAT-COLTEXT = '대변 금액'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_FCAT-REF_FIELD = 'WRBTR'.
+  LS_ITEM_FCAT-DO_SUM = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-COLTEXT = '통화'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'KUNNR'.
+  LS_ITEM_FCAT-COLTEXT = '고객 코드'.
+  LS_ITEM_FCAT-HOTSPOT = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'LIFNR'.
+  LS_ITEM_FCAT-COLTEXT = '공급업체 코드'.
+  LS_ITEM_FCAT-HOTSPOT = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SGTXT'.
+  LS_ITEM_FCAT-COLTEXT = '적요'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SEARCH_HEADER_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SEARCH_HEADER_DATA .
+
+  CLEAR GT_ITEM_DATA.
+
+  DATA: RT_BELNR  TYPE RANGE OF ZTFC_FIT020-BELNR,
+        RS_BELNR  LIKE LINE OF RT_BELNR,
+        RT_BKSTAT TYPE RANGE OF ZTFC_FIT020-BKSTAT,
+        RS_BKSTAT LIKE LINE OF RT_BKSTAT,
+        RT_GJAHR  TYPE RANGE OF ZTFC_FIT020-GJAHR,
+        RS_GJAHR  LIKE LINE OF RT_GJAHR,
+        RT_BLART  TYPE RANGE OF ZTFC_FIT020-BLART,
+        RS_BLART  LIKE LINE OF RT_BLART.
+
+  DATA: LV_START_BELNR TYPE ZSFC_FI_0030-START_BELNR,
+        LV_END_BELNR   TYPE ZSFC_FI_0030-END_BELNR.
+
+  DATA: LV_PATTERN TYPE STRING VALUE '^[0-9]+$',
+        LR_MATCHER TYPE REF TO CL_ABAP_MATCHER,
+        LV_SUCCESS TYPE ABAP_BOOL.
+
+
+  LV_START_BELNR = ZSFC_FI_0030-START_BELNR.
+  LV_END_BELNR = ZSFC_FI_0030-END_BELNR.
+
+* 숫자 입력만 허용
+  IF LV_START_BELNR IS NOT INITIAL.
+    LR_MATCHER = CL_ABAP_MATCHER=>CREATE(
+               PATTERN       = LV_PATTERN                  " Regular Expression
+               TEXT          = LV_START_BELNR                 " Text to be Searched in
+               ).
+    LV_SUCCESS = LR_MATCHER->MATCH( ).
+
+    IF LV_SUCCESS = ABAP_FALSE.
+      MESSAGE S128(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+
+  ENDIF.
+
+* 숫자 입력만 허용
+  IF LV_END_BELNR IS NOT INITIAL.
+
+    LR_MATCHER = CL_ABAP_MATCHER=>CREATE(
+           PATTERN       = LV_PATTERN                  " Regular Expression
+           TEXT          = LV_END_BELNR                 " Text to be Searched in
+           ).
+    LV_SUCCESS = LR_MATCHER->MATCH( ).
+
+    IF LV_SUCCESS = ABAP_FALSE.
+      MESSAGE S128(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+  ENDIF.
+
+
+
+
+  IF LV_START_BELNR IS NOT INITIAL AND LV_END_BELNR IS INITIAL. "  = START
+
+    IF LV_START_BELNR < 0.
+      MESSAGE S127(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+
+    RS_BELNR-SIGN = 'I'.
+    RS_BELNR-OPTION = 'EQ'.
+    RS_BELNR-LOW = LV_START_BELNR.
+    APPEND RS_BELNR TO RT_BELNR.
+  ELSEIF LV_START_BELNR IS NOT INITIAL AND LV_END_BELNR IS NOT INITIAL. " = START ~ END
+
+    IF LV_START_BELNR > LV_END_BELNR OR LV_START_BELNR < 0 OR LV_END_BELNR < 0.
+      MESSAGE S127(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+
+    RS_BELNR-SIGN = 'I'.
+    RS_BELNR-OPTION = 'BT'.
+    RS_BELNR-LOW = LV_START_BELNR.
+    RS_BELNR-HIGH = LV_END_BELNR.
+    APPEND RS_BELNR TO RT_BELNR.
+  ELSEIF LV_START_BELNR IS INITIAL AND LV_END_BELNR IS NOT INITIAL. " = ~ END
+    MESSAGE S124(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
+  IF ZSFC_FI_0030-BKSTAT IS NOT INITIAL.
+    RS_BKSTAT-SIGN = 'I'.
+    RS_BKSTAT-OPTION = 'EQ'.
+    CASE ZSFC_FI_0030-BKSTAT.
+      WHEN '0'.
+        RS_BKSTAT-LOW = '0'.
+      WHEN '1'.
+        RS_BKSTAT-LOW = '1'.
+      WHEN '2'.
+        RS_BKSTAT-LOW = '2'.
+    ENDCASE.
+    APPEND RS_BKSTAT TO RT_BKSTAT.
+  ENDIF.
+
+  IF ZSFC_FI_0030-GJAHR IS NOT INITIAL.
+    RS_GJAHR-SIGN = 'I'.
+    RS_GJAHR-OPTION = 'EQ'.
+    RS_GJAHR-LOW = ZSFC_FI_0030-GJAHR.
+    APPEND RS_GJAHR TO RT_GJAHR.
+  ENDIF.
+
+  IF ZSFC_FI_0030-BLART IS NOT INITIAL.
+    RS_BLART-SIGN = 'I'.
+    RS_BLART-OPTION = 'EQ'.
+    RS_BLART-LOW = ZSFC_FI_0030-BLART.
+    APPEND RS_BLART TO RT_BLART.
+  ENDIF.
+
+  SELECT *
+    FROM ZTFC_FIT020
+    INTO CORRESPONDING FIELDS OF TABLE GT_HEADER_DATA
+    WHERE BELNR IN RT_BELNR
+      AND BKSTAT IN RT_BKSTAT
+      AND GJAHR IN RT_GJAHR
+      AND BLART IN RT_BLART.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+  LOOP AT GT_HEADER_DATA INTO GS_HEADER_DATA.
+
+    IF GS_HEADER_DATA-BKSTAT = '0'.
+*      미승인 - 노란색(2)
+      GS_HEADER_DATA-LIGHT = 2.
+    ELSEIF GS_HEADER_DATA-BKSTAT = '1'.
+*      승인 - 초록색(3)
+      GS_HEADER_DATA-LIGHT = 3.
+    ELSEIF GS_HEADER_DATA-BKSTAT = '2'.
+*      반려 - 빨간색(1)
+      GS_HEADER_DATA-LIGHT = 1.
+    ENDIF.
+
+    MODIFY GT_HEADER_DATA FROM GS_HEADER_DATA.
+  ENDLOOP.
+
+  SORT GT_HEADER_DATA BY BELNR DESCENDING.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form RESET_SEARCH_HEADER_CONDITION
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM RESET_SEARCH_HEADER_CONDITION .
+  CLEAR ZSFC_FI_0030.
+  CLEAR GT_HEADER_DATA.
+  CLEAR GT_ITEM_DATA.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_HEADER_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_HEADER_LAYOUT .
+  GS_HEADER_LAYOUT-GRID_TITLE = '전표 헤더 목록'.
+  GS_HEADER_LAYOUT-ZEBRA = 'X'.
+  GS_HEADER_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_HEADER_LAYOUT-SEL_MODE = 'A'.
+  GS_HEADER_LAYOUT-EXCP_FNAME = 'LIGHT'.
+  GS_HEADER_LAYOUT-EXCP_LED = 'X'.
+  GS_HEADER_LAYOUT-STYLEFNAME = 'IT_PDF_BTN'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form APPROVE_SELECTED_HEADERDS
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM APPROVE_SELECTED_HEADERDS .
+  DATA: LT_ROWS   TYPE LVC_T_ROID,
+        LS_ROWS   LIKE LINE OF LT_ROWS,
+        LV_CNT    TYPE I,
+        LV_TITLE  TYPE STRING,
+        LV_ANSWER TYPE C LENGTH 1.
+
+  CALL METHOD GO_HEADER_ALV_GRID->GET_SELECTED_ROWS
+    IMPORTING
+      ET_ROW_NO = LT_ROWS.
+
+  IF LT_ROWS IS INITIAL.
+    MESSAGE S102(ZFC_DUMPTRUCK) WITH 1 DISPLAY LIKE 'W'.
+  ELSE.
+
+    LOOP AT LT_ROWS INTO LS_ROWS.
+      READ TABLE GT_HEADER_DATA INTO GS_HEADER_DATA INDEX LS_ROWS-ROW_ID.
+
+      IF GS_HEADER_DATA-BKSTAT = '2'.
+        MESSAGE I103(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+        RETURN.
+      ELSEIF GS_HEADER_DATA-BKSTAT = '1'.
+        MESSAGE I104(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    LV_CNT = LINES( LT_ROWS ).
+    LV_TITLE = LV_CNT && '건의 전표를 승인하시겠습니까?'.
+
+    CALL FUNCTION 'POPUP_TO_CONFIRM'
+      EXPORTING
+        TITLEBAR              = '전표 승인'
+*       DIAGNOSE_OBJECT       = ' '
+        TEXT_QUESTION         = LV_TITLE
+        TEXT_BUTTON_1         = '예'
+*       ICON_BUTTON_1         = 'ICON_OKAY'
+        TEXT_BUTTON_2         = '아니요'
+*       ICON_BUTTON_2         = 'ICON_CANCEL'
+        DISPLAY_CANCEL_BUTTON = ''
+      IMPORTING
+        ANSWER                = LV_ANSWER
+      EXCEPTIONS
+        TEXT_NOT_FOUND        = 1
+        OTHERS                = 2.
+    IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+* 전표 승인 YES
+    IF LV_ANSWER = '1'.
+      LOOP AT LT_ROWS INTO LS_ROWS.
+        READ TABLE GT_HEADER_DATA INTO GS_HEADER_DATA INDEX LS_ROWS-ROW_ID.
+
+        GS_HEADER_DATA-BUDAT = SY-DATUM.
+        GS_HEADER_DATA-BKSTAT = '1'.
+        GS_HEADER_DATA-GJAHR = SY-DATUM+0(4).
+        MODIFY TABLE GT_HEADER_DATA FROM GS_HEADER_DATA.
+        UPDATE ZTFC_FIT020
+          SET BKSTAT = '1'
+          BUDAT = SY-DATUM
+          GJAHR = SY-DATUM+0(4)
+          WHERE BELNR = GS_HEADER_DATA-BELNR.
+      ENDLOOP.
+
+      PERFORM SEARCH_HEADER_DATA.
+      PERFORM SETTING_HEADER_STATUS_DATA.
+
+      CALL METHOD GO_HEADER_ALV_GRID->REFRESH_TABLE_DISPLAY
+        EXCEPTIONS
+          FINISHED = 1
+          OTHERS   = 2.
+      IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+      ENDIF.
+
+
+      MESSAGE '전표 승인시 총계정원장 또는 보조원장에 기입 개발 필요' TYPE 'I'.
+      MESSAGE S133(ZFC_DUMPTRUCK) WITH LV_CNT.
+
+    ENDIF.
+  ENDIF.
+
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_CREATE_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_CREATE_LAYOUT .
+  GS_ITEM_CREATE_LAYOUT-GRID_TITLE = '전표 아이템 목록'.
+  GS_ITEM_CREATE_LAYOUT-ZEBRA = 'X'.
+  GS_ITEM_CREATE_LAYOUT-SEL_MODE = 'A'.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DEL_SELECTED_ITEMS
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM DEL_SELECTED_ITEMS .
+  DATA: LT_ROWS TYPE LVC_T_ROID,
+        LS_ROWS LIKE LINE OF LT_ROWS.
+
+  CALL METHOD GO_ITEM_CREATE_ALV_GRID->GET_SELECTED_ROWS
+    IMPORTING
+      ET_ROW_NO = LT_ROWS.
+
+  IF LT_ROWS IS INITIAL.
+    MESSAGE S108(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+  ELSE.
+
+* 여러 아이템 삭제를 위해 ROW_ID를 내림차순
+    SORT LT_ROWS BY ROW_ID DESCENDING.
+    LOOP AT LT_ROWS INTO LS_ROWS .
+
+      READ TABLE GT_ITEM_CREATE_DATA INTO GS_ITEM_CREATE_DATA INDEX LS_ROWS-ROW_ID.
+
+      CASE GS_ITEM_CREATE_DATA-SHKZG.
+        WHEN 'S'.
+          SUBTRACT GS_ITEM_CREATE_DATA-WRBTR FROM ZSFC_FI_0010-DEBIT.
+        WHEN 'H'.
+          SUBTRACT GS_ITEM_CREATE_DATA-WRBTR FROM ZSFC_FI_0010-CREDIT.
+      ENDCASE.
+
+      DELETE GT_ITEM_CREATE_DATA INDEX LS_ROWS-ROW_ID.
+    ENDLOOP.
+
+
+* 전표 아이템 번호 다시 번호 라벨링
+    LOOP AT GT_ITEM_CREATE_DATA INTO GS_ITEM_CREATE_DATA.
+      GS_ITEM_CREATE_DATA-BUZEI = SY-TABIX.
+      MODIFY GT_ITEM_CREATE_DATA FROM GS_ITEM_CREATE_DATA.
+    ENDLOOP.
+
+    CALL METHOD GO_ITEM_CREATE_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_CREATE_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_CREATE_FCAT .
+
+  DATA: LS_ITEM_CREATE_FCAT TYPE LVC_S_FCAT.
+
+  CLEAR LS_ITEM_CREATE_FCAT.
+  LS_ITEM_CREATE_FCAT-FIELDNAME = 'BUZEI'.
+  LS_ITEM_CREATE_FCAT-COLTEXT = '아이템번호'.
+  LS_ITEM_CREATE_FCAT-KEY = 'X'.
+  APPEND LS_ITEM_CREATE_FCAT TO GT_ITEM_CREATE_FCAT.
+
+  CLEAR LS_ITEM_CREATE_FCAT.
+  LS_ITEM_CREATE_FCAT-FIELDNAME = 'BSCHL'.
+  LS_ITEM_CREATE_FCAT-COLTEXT = '전기키'.
+  APPEND LS_ITEM_CREATE_FCAT TO GT_ITEM_CREATE_FCAT.
+
+  CLEAR LS_ITEM_CREATE_FCAT.
+  LS_ITEM_CREATE_FCAT-FIELDNAME = 'SKANR'.
+  LS_ITEM_CREATE_FCAT-COLTEXT = '계정과목 코드'.
+  APPEND LS_ITEM_CREATE_FCAT TO GT_ITEM_CREATE_FCAT.
+
+  CLEAR LS_ITEM_CREATE_FCAT.
+  LS_ITEM_CREATE_FCAT-FIELDNAME = 'GLTXT'.
+  LS_ITEM_CREATE_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_ITEM_CREATE_FCAT TO GT_ITEM_CREATE_FCAT.
+
+  CLEAR LS_ITEM_CREATE_FCAT.
+  LS_ITEM_CREATE_FCAT-FIELDNAME = 'DEBIT'.
+  LS_ITEM_CREATE_FCAT-COLTEXT = '차변 금액'.
+  LS_ITEM_CREATE_FCAT-CFIELDNAME = 'WAERS'.
+  LS_ITEM_CREATE_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_CREATE_FCAT-REF_FIELD = 'WRBTR'.
+  APPEND LS_ITEM_CREATE_FCAT TO GT_ITEM_CREATE_FCAT.
+
+  CLEAR LS_ITEM_CREATE_FCAT.
+  LS_ITEM_CREATE_FCAT-FIELDNAME = 'CREDIT'.
+  LS_ITEM_CREATE_FCAT-COLTEXT = '대변 금액'.
+  LS_ITEM_CREATE_FCAT-CFIELDNAME = 'WAERS'.
+  LS_ITEM_CREATE_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_CREATE_FCAT-REF_FIELD = 'WRBTR'.
+  APPEND LS_ITEM_CREATE_FCAT TO GT_ITEM_CREATE_FCAT.
+
+  CLEAR LS_ITEM_CREATE_FCAT.
+  LS_ITEM_CREATE_FCAT-FIELDNAME = 'WAERS'.
+  LS_ITEM_CREATE_FCAT-COLTEXT = '통화'.
+  APPEND LS_ITEM_CREATE_FCAT TO GT_ITEM_CREATE_FCAT.
+
+  CLEAR LS_ITEM_CREATE_FCAT.
+  LS_ITEM_CREATE_FCAT-FIELDNAME = 'SGTXT'.
+  LS_ITEM_CREATE_FCAT-COLTEXT = '적요'.
+  APPEND LS_ITEM_CREATE_FCAT TO GT_ITEM_CREATE_FCAT.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form REJECT_SELECTED_HEADER
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM REJECT_SELECTED_HEADER .
+  DATA: LT_ROWS TYPE LVC_T_ROID,
+        LS_ROWS LIKE LINE OF LT_ROWS.
+
+  CALL METHOD GO_HEADER_ALV_GRID->GET_SELECTED_ROWS
+    IMPORTING
+      ET_ROW_NO = LT_ROWS.
+
+  IF LT_ROWS IS INITIAL OR LINES( LT_ROWS ) > 1.
+    MESSAGE S102(ZFC_DUMPTRUCK) WITH '1' DISPLAY LIKE 'W'.
+  ELSEIF LINES( LT_ROWS ) = 1.
+
+    READ TABLE LT_ROWS INTO LS_ROWS INDEX 1.
+    READ TABLE GT_HEADER_DATA INTO GS_HEADER_DATA INDEX LS_ROWS-ROW_ID.
+
+    IF GS_HEADER_DATA-BKSTAT = 0.
+      MOVE-CORRESPONDING GS_HEADER_DATA TO ZTFC_FIT020.
+      CALL SCREEN 110
+        STARTING AT 5 5.
+    ELSE.
+      MESSAGE S126(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    ENDIF.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_HEADER_SORT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_HEADER_SORT .
+  DATA: LS_HEADER_SORT TYPE LVC_S_SORT.
+
+  LS_HEADER_SORT-FIELDNAME = 'BELNR'.
+*  LS_HEADER_SORT-DOWN = 'X'.
+  APPEND LS_HEADER_SORT TO GT_HEADER_SORT.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form REJECT_HEADER_OKAY
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM REJECT_HEADER_OKAY .
+
+  DATA: LV_ANSWER TYPE C LENGTH 1,
+        LV_REVTXT TYPE STRING.
+
+  LV_REVTXT = ZTFC_FIT020-REVTXT.
+  CONDENSE LV_REVTXT.
+
+  IF LV_REVTXT IS INITIAL.
+    MESSAGE I101(ZFC_DUMPTRUCK).
+  ELSE.
+
+    CALL FUNCTION 'POPUP_TO_CONFIRM'
+      EXPORTING
+        TITLEBAR              = '전표 반려'
+*       DIAGNOSE_OBJECT       = ' '
+        TEXT_QUESTION         = '정말 전표를 반려하시겠습니까?'
+        TEXT_BUTTON_1         = '예'
+*       ICON_BUTTON_1         = ' '
+        TEXT_BUTTON_2         = '아니요'
+*       ICON_BUTTON_2         = ' '
+*       DEFAULT_BUTTON        = '1'
+        DISPLAY_CANCEL_BUTTON = ''
+*       USERDEFINED_F1_HELP   = ' '
+*       START_COLUMN          = 250
+*       START_ROW             = 6
+*       POPUP_TYPE            =
+*       IV_QUICKINFO_BUTTON_1 = ' '
+*       IV_QUICKINFO_BUTTON_2 = ' '
+      IMPORTING
+        ANSWER                = LV_ANSWER
+*       TABLES
+*       PARAMETER             =
+*       EXCEPTIONS
+*       TEXT_NOT_FOUND        = 1
+*       OTHERS                = 2
+      .
+    IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+    ENDIF.
+
+    IF LV_ANSWER = '1'.
+      UPDATE ZTFC_FIT020 SET BKSTAT = 2
+                             REVTXT = ZTFC_FIT020-REVTXT
+                         WHERE BELNR = ZTFC_FIT020-BELNR.
+
+      PERFORM SEARCH_HEADER_DATA.
+      PERFORM SETTING_HEADER_STATUS_DATA.
+
+      CALL METHOD GO_HEADER_ALV_GRID->REFRESH_TABLE_DISPLAY
+        EXCEPTIONS
+          FINISHED = 1
+          OTHERS   = 2.
+      IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+      ENDIF.
+
+
+    ELSEIF LV_ANSWER = '2'.
+
+    ENDIF.
+
+    LEAVE TO SCREEN 0.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_LAYOUT .
+  GS_ITEM_LAYOUT-GRID_TITLE = '전표 아이템'.
+  GS_ITEM_LAYOUT-CWIDTH_OPT = 'A'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_ITEM_TITLE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_ITEM_ALV_GRID_TITLE .
+
+  IF LINES( GT_ITEM_DATA ) = 0.
+
+    GS_ITEM_LAYOUT-GRID_TITLE = '전표 아이템'.
+*
+    CALL METHOD GO_ITEM_ALV_GRID->SET_FRONTEND_LAYOUT
+      EXPORTING
+        IS_LAYOUT = GS_ITEM_LAYOUT.
+
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SETTING_HEADER_STATUS_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SETTING_HEADER_STATUS_DATA .
+
+  CLEAR GS_HEADER_STATUS_DATA.
+
+  GS_HEADER_STATUS_DATA-ALL_CNT = LINES( GT_HEADER_DATA ).
+  LOOP AT GT_HEADER_DATA INTO GS_HEADER_DATA.
+    CASE GS_HEADER_DATA-BKSTAT.
+      WHEN '0'.
+        ADD 1 TO GS_HEADER_STATUS_DATA-UNAPPROVE.
+      WHEN '1'.
+        ADD 1 TO GS_HEADER_STATUS_DATA-APPROVE_CNT.
+      WHEN '2'.
+        ADD 1 TO GS_HEADER_STATUS_DATA-REJECT_CNT.
+    ENDCASE.
+  ENDLOOP.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form RESET_CREATE_DOCUMENT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM RESET_CREATE_DOCUMENT .
+
+  CLEAR ZTFC_FIT020-BLDAT.
+  CLEAR ZTFC_FIT020-BKTXT.
+  CLEAR ZSFC_FI_0010.
+  CLEAR GT_ITEM_CREATE_DATA.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DETAIL_SELECTED_HEADER
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM DETAIL_SELECTED_HEADER .
+
+  DATA: LT_ROWS TYPE LVC_T_ROID,
+        LS_ROWS LIKE LINE OF LT_ROWS.
+
+  CALL METHOD GO_HEADER_ALV_GRID->GET_SELECTED_ROWS
+    IMPORTING
+      ET_ROW_NO = LT_ROWS.
+
+  IF LT_ROWS IS INITIAL OR LINES( LT_ROWS ) > 1.
+    MESSAGE S102(ZFC_DUMPTRUCK) WITH '1' DISPLAY LIKE 'W'.
+  ELSEIF LINES( LT_ROWS ) = 1.
+
+    READ TABLE LT_ROWS INTO LS_ROWS INDEX 1.
+    READ TABLE GT_HEADER_DATA INTO GS_HEADER_DATA INDEX LS_ROWS-ROW_ID.
+
+    SELECT *
+      FROM ZTFC_FIT030
+      INTO CORRESPONDING FIELDS OF TABLE GT_ITEM_DATA
+      WHERE BELNR = GS_HEADER_DATA-BELNR.
+
+
+
+    SORT GT_ITEM_DATA BY BUZEI.
+    LOOP AT GT_ITEM_DATA INTO GS_ITEM_DATA.
+
+      CASE GS_ITEM_DATA-SHKZG.
+        WHEN 'S'.
+          GS_ITEM_DATA-DEBIT = GS_ITEM_DATA-WRBTR.
+        WHEN 'H'.
+          GS_ITEM_DATA-CREDIT = GS_ITEM_DATA-WRBTR.
+      ENDCASE.
+
+* 입력된 계정과목코드로 계정과목명 조회
+      SELECT SINGLE GLTXT
+        FROM ZTFC_FIT010
+        INTO GS_ITEM_DATA-GLTXT
+        WHERE SKANR = GS_ITEM_DATA-SKANR.
+
+      MODIFY GT_ITEM_DATA FROM GS_ITEM_DATA.
+    ENDLOOP.
+
+
+    GS_ITEM_LAYOUT-GRID_TITLE = '[' && GS_HEADER_DATA-BELNR && ']' && ' 전표 아이템'.
+    CALL METHOD GO_ITEM_ALV_GRID->SET_FRONTEND_LAYOUT
+      EXPORTING
+        IS_LAYOUT = GS_ITEM_LAYOUT.
+
+
+
+    CALL METHOD GO_ITEM_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_UPDATE_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_UPDATE_FCAT .
+
+  DATA: LS_ITEM_UPDATE_FCAT TYPE LVC_S_FCAT.
+
+  CLEAR LS_ITEM_UPDATE_FCAT.
+  LS_ITEM_UPDATE_FCAT-FIELDNAME = 'BUZEI'.
+  LS_ITEM_UPDATE_FCAT-COLTEXT = '아이템 번호'.
+  LS_ITEM_UPDATE_FCAT-KEY = 'X'.
+  APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
+
+  CLEAR LS_ITEM_UPDATE_FCAT.
+  LS_ITEM_UPDATE_FCAT-FIELDNAME = 'BSCHL'.
+  LS_ITEM_UPDATE_FCAT-COLTEXT = '전기키'.
+  APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
+
+  CLEAR LS_ITEM_UPDATE_FCAT.
+  LS_ITEM_UPDATE_FCAT-FIELDNAME = 'SKANR'.
+  LS_ITEM_UPDATE_FCAT-COLTEXT = '계정과목 코드'.
+  LS_ITEM_UPDATE_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_UPDATE_FCAT-REF_FIELD = 'SKANR'.
+  APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
+
+  CLEAR LS_ITEM_UPDATE_FCAT.
+  LS_ITEM_UPDATE_FCAT-FIELDNAME = 'GLTXT'.
+  LS_ITEM_UPDATE_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
+
+  CLEAR LS_ITEM_UPDATE_FCAT.
+  LS_ITEM_UPDATE_FCAT-FIELDNAME = 'DEBIT'.
+  LS_ITEM_UPDATE_FCAT-COLTEXT = '차변'.
+  LS_ITEM_UPDATE_FCAT-CFIELDNAME = 'WAERS'.
+  LS_ITEM_UPDATE_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_UPDATE_FCAT-REF_FIELD = 'WRBTR'.
+  LS_ITEM_UPDATE_FCAT-EDIT = 'X'.
+  APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
+
+  CLEAR LS_ITEM_UPDATE_FCAT.
+  LS_ITEM_UPDATE_FCAT-FIELDNAME = 'CREDIT'.
+  LS_ITEM_UPDATE_FCAT-COLTEXT = '대변'.
+  LS_ITEM_UPDATE_FCAT-CFIELDNAME = 'WAERS'.
+  LS_ITEM_UPDATE_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_UPDATE_FCAT-REF_FIELD = 'WRBTR'.
+  LS_ITEM_UPDATE_FCAT-EDIT = 'X'.
+  APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
+
+  CLEAR LS_ITEM_UPDATE_FCAT.
+  LS_ITEM_UPDATE_FCAT-FIELDNAME = 'WAERS'.
+  LS_ITEM_UPDATE_FCAT-COLTEXT = '통화'.
+  APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
+
+  CLEAR LS_ITEM_UPDATE_FCAT.
+  LS_ITEM_UPDATE_FCAT-FIELDNAME = 'SGTXT'.
+  LS_ITEM_UPDATE_FCAT-COLTEXT = '적요'.
+  LS_ITEM_UPDATE_FCAT-EDIT = 'X'.
+  APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_UPDATE_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_UPDATE_LAYOUT .
+*    GS_ITEM_UPDATE_LAYOUT-EDIT = 'X'.
+  GS_ITEM_UPDATE_LAYOUT-STYLEFNAME = 'CELLSTYL'.
+  GS_ITEM_UPDATE_LAYOUT-CWIDTH_OPT = 'X'.
+  GS_ITEM_UPDATE_LAYOUT-NO_TOOLBAR = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_UPDATE_CELLSTYL
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_UPDATE_CELLSTYL
+  CHANGING PV_ITEM_UPDATE_DATA TYPE TS_ITEM_UPDATE_DATA.
+
+  DATA: LV_CELLSTYL TYPE LVC_S_STYL.
+
+  IF PV_ITEM_UPDATE_DATA-SHKZG = 'S'.
+    LV_CELLSTYL-FIELDNAME = 'CREDIT'.
+    LV_CELLSTYL-STYLE = CL_GUI_ALV_GRID=>MC_STYLE_DISABLED.
+  ELSEIF PV_ITEM_UPDATE_DATA-SHKZG = 'H'.
+    LV_CELLSTYL-FIELDNAME = 'DEBIT'.
+    LV_CELLSTYL-STYLE = CL_GUI_ALV_GRID=>MC_STYLE_DISABLED.
+  ENDIF.
+
+  INSERT LV_CELLSTYL INTO TABLE PV_ITEM_UPDATE_DATA-CELLSTYL.
+
+ENDFORM.
