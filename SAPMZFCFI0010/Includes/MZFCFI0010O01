@@ -140,9 +140,13 @@ ENDMODULE.
 MODULE INIT_ITEM_CREATE_ALV OUTPUT.
 
   ZTFC_FIT020-BLART = 'SA'.
-  ZTFC_FIT020-BLDAT = SY-DATUM.
   ZSFC_FI_0020-WAERS = 'KRW'.
   ZSFC_FI_0010-WAERS = 'KRW'.
+
+  IF ZTFC_FIT020-BLDAT IS INITIAL.
+    ZTFC_FIT020-BLDAT = SY-DATUM.
+  ENDIF.
+
 
   IF GO_ITEM_CREATE_CONTAINER IS INITIAL.
 
@@ -352,64 +356,6 @@ ENDMODULE.
 MODULE STATUS_0110 OUTPUT.
   SET PF-STATUS 'S110'.
   SET TITLEBAR 'T110' WITH GS_HEADER_DATA-BELNR.
-ENDMODULE.
-*&---------------------------------------------------------------------*
-*& Module INIT_LISTBOX OUTPUT
-*&---------------------------------------------------------------------*
-*&
-*&---------------------------------------------------------------------*
-MODULE INIT_LISTBOX OUTPUT.
-
-*  DATA: LT_BKSTAT TYPE TABLE OF DD07V,
-*        LS_BKSTAT LIKE LINE OF LT_BKSTAT.
-*
-*  CLEAR: GT_LISTBOX.
-*
-*  CALL FUNCTION 'GET_DOMAIN_VALUES'
-*    EXPORTING
-*      DOMNAME         = 'ZDFC_BKSTAT'
-*    TABLES
-*      VALUES_TAB      = LT_BKSTAT
-*    EXCEPTIONS
-*      NO_VALUES_FOUND = 1
-*      OTHERS          = 2.
-*  IF SY-SUBRC <> 0.
-** Implement suitable error handling here
-*  ENDIF.
-*
-*
-*  LOOP AT LT_BKSTAT INTO LS_BKSTAT.
-*
-*    GS_LISTBOX-KEY = LS_BKSTAT-DOMVALUE_L.
-*
-*    CALL FUNCTION 'RKE_DOMVALUE_TEXT_GET'
-*      EXPORTING
-*        I_DOMA             = 'ZDFC_BKSTAT'
-*        I_DOMVALUE         = GS_LISTBOX-KEY
-*        I_LANGU            = SY-LANGU
-*      IMPORTING
-*        E_DDTEXT           = GS_LISTBOX-TEXT
-*      EXCEPTIONS
-*        DOMNAME_NOT_FOUND  = 1
-*        DOMVALUE_NOT_FOUND = 2
-*        OTHERS             = 3.
-*    IF SY-SUBRC <> 0.
-** Implement suitable error handling here
-*    ENDIF.
-
-*    GS_LISTBOX-KEY = 'T'.
-*    GS_LISTBOX-TEXT = 'test'.
-*    APPEND GS_LISTBOX TO GT_LISTBOX.
-
-*    CALL FUNCTION 'VRM_SET_VALUES'
-*      EXPORTING
-*        ID     = ''
-*        VALUES = GT_LISTBOX.
-*    IF SY-SUBRC <> 0.
-** Implement suitable error handling here
-*    ENDIF.
-
-*  ENDLOOP.
 ENDMODULE.
 *&---------------------------------------------------------------------*
 *& Module STATUS_0300 OUTPUT
