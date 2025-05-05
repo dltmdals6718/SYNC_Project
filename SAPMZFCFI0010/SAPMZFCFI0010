@@ -1,0 +1,11 @@
+*&---------------------------------------------------------------------*
+*& Module Pool      SAPMZFCFI0010
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+
+INCLUDE MZFCFI0010TOP.   " Global Data
+ INCLUDE MZFCFI0010C01.  "Class
+ INCLUDE MZFCFI0010O01.  " PBO-Modules
+ INCLUDE MZFCFI0010I01.  " PAI-Modules
+ INCLUDE MZFCFI0010F01.  " FORM-Routines
