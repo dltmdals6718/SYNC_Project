@@ -77,6 +77,12 @@ FORM SAVE_DOCUMENT .
   DATA: LV_DOCUMENT_NUMBER TYPE CHAR10,
         LV_EMPLOYEE        TYPE ZTFC_SDT040.
 
+* 미래의 증빙일자 불가능
+  IF ZTFC_FIT020-BLDAT > SY-DATUM.
+    MESSAGE S134(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
 * 생성자 사원 정보 조회
   SELECT SINGLE *
     FROM ZTFC_SDT040
@@ -599,6 +605,7 @@ FORM DEL_SELECTED_ITEMS .
         WHEN 'H'.
           SUBTRACT GS_ITEM_CREATE_DATA-WRBTR FROM ZSFC_FI_0010-CREDIT.
       ENDCASE.
+      ZSFC_FI_0010-DIFFERENCE = ABS( ZSFC_FI_0010-DEBIT - ZSFC_FI_0010-CREDIT ).
 
       DELETE GT_ITEM_CREATE_DATA INDEX LS_ROWS-ROW_ID.
     ENDLOOP.
@@ -871,11 +878,10 @@ ENDFORM.
 *& <--  p2        text
 *&---------------------------------------------------------------------*
 FORM RESET_CREATE_DOCUMENT .
-
-  CLEAR ZTFC_FIT020-BLDAT.
   CLEAR ZTFC_FIT020-BKTXT.
   CLEAR ZSFC_FI_0010.
   CLEAR GT_ITEM_CREATE_DATA.
+  ZTFC_FIT020-BLDAT = SY-DATUM.
 ENDFORM.
 *&---------------------------------------------------------------------*
 *& Form DETAIL_SELECTED_HEADER
@@ -1010,6 +1016,7 @@ FORM SET_ITEM_UPDATE_FCAT .
   LS_ITEM_UPDATE_FCAT-FIELDNAME = 'SGTXT'.
   LS_ITEM_UPDATE_FCAT-COLTEXT = '적요'.
   LS_ITEM_UPDATE_FCAT-EDIT = 'X'.
+  LS_ITEM_UPDATE_FCAT-OUTPUTLEN = 15.
   APPEND LS_ITEM_UPDATE_FCAT TO GT_ITEM_UPDATE_FCAT.
 ENDFORM.
 *&---------------------------------------------------------------------*
@@ -1021,9 +1028,8 @@ ENDFORM.
 *& <--  p2        text
 *&---------------------------------------------------------------------*
 FORM SET_ITEM_UPDATE_LAYOUT .
-*    GS_ITEM_UPDATE_LAYOUT-EDIT = 'X'.
   GS_ITEM_UPDATE_LAYOUT-STYLEFNAME = 'CELLSTYL'.
-  GS_ITEM_UPDATE_LAYOUT-CWIDTH_OPT = 'X'.
+*  GS_ITEM_UPDATE_LAYOUT-CWIDTH_OPT = 'A'.
   GS_ITEM_UPDATE_LAYOUT-NO_TOOLBAR = 'X'.
 ENDFORM.
 *&---------------------------------------------------------------------*
