@@ -1,0 +1,1031 @@
+*&--------------------------------------------------------------------*
+*& Form INIT_TREE_HIERARCHY
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_HIERARCHY .
+
+  IF GT_ACCOUNT IS INITIAL.
+    SELECT *
+      FROM ZTFC_FIT010
+      INTO CORRESPONDING FIELDS OF TABLE GT_ACCOUNT.
+  ENDIF.
+
+  PERFORM INIT_TREE_ASSET.
+  PERFORM INIT_TREE_LIABILITIES.
+  PERFORM INIT_TREE_CAPITAL.
+  PERFORM INIT_TREE_REVENUE.
+  PERFORM INIT_TREE_EXPENSE.
+
+
+
+  CALL METHOD GO_ALV_TREE->ADD_NODES
+    EXPORTING
+      TABLE_STRUCTURE_NAME           = 'MTREESNODE'
+      NODE_TABLE                     = GT_NODE
+    EXCEPTIONS
+      ERROR_IN_NODE_TABLE            = 1
+      FAILED                         = 2
+      DP_ERROR                       = 3
+      TABLE_STRUCTURE_NAME_NOT_FOUND = 4
+      OTHERS                         = 5.
+  IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+  ENDIF.
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_ASSET
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_ASSET .
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 1. 자산
+  GS_NODE-NODE_KEY = 'DIR_1'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 1-1. 유동자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_2'.
+  GS_NODE-RELATKEY = 'DIR_1'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '유동자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 1-2. 현금및현금성자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_3'.
+  GS_NODE-RELATKEY = 'DIR_2'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '현금및현금성자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '101'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_3'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 1-2. 매출 채권
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_4'.
+  GS_NODE-RELATKEY = 'DIR_2'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '매출채권'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '102' OR SKANR+0(3) = '103'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_4'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 1-2 재고 자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_5'.
+  GS_NODE-RELATKEY = 'DIR_2'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '재고자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '104'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_5'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+*  1-2 유동 자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_6'.
+  GS_NODE-RELATKEY = 'DIR_2'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '기타자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '105'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_6'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 1-1 비유동자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_7'.
+  GS_NODE-RELATKEY = 'DIR_1'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '비유동자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 1-2 유형자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_8'.
+  GS_NODE-RELATKEY = 'DIR_7'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '유형자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '106'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_8'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_LIABILITIES
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_LIABILITIES .
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 2. 부채
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_9'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '부채'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 2-1. 유동부채
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_10'.
+  GS_NODE-RELATKEY = 'DIR_9'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '유동부채'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 2-2. 매입채무
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_11'.
+  GS_NODE-RELATKEY = 'DIR_10'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '매입채무'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '200'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_11'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 2-2. 미지급금
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_12'.
+  GS_NODE-RELATKEY = 'DIR_10'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '미지급금'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '201'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_12'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 2-2. 비유동부채
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_13'.
+  GS_NODE-RELATKEY = 'DIR_9'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '비유동부채'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '202'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_13'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_CAPITAL
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_CAPITAL .
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 3. 자본
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_14'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '자본'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '300'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_14'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_REVENUE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_REVENUE .
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 4. 수익
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_15'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '수익'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 4-1 매출수익
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_16'.
+  GS_NODE-RELATKEY = 'DIR_15'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '매출수익'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '400'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_16'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 4-1 기타수익
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_17'.
+  GS_NODE-RELATKEY = 'DIR_15'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '기타수익'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '401'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_17'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_EXPENSE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_EXPENSE .
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 5. 비용
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_18'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '비용'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 5-1 매출원가
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_19'.
+  GS_NODE-RELATKEY = 'DIR_18'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '매출원가'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '500'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_19'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 5-1 판매관리비
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_20'.
+  GS_NODE-RELATKEY = 'DIR_18'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '판매관리비'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '501'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_20'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 5-1 기타비용
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_21'.
+  GS_NODE-RELATKEY = 'DIR_18'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '기타비용'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '502'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_21'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_GL_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_GL_FCAT .
+
+  DATA: LS_FCAT TYPE LVC_S_FCAT.
+
+  LS_FCAT-FIELDNAME = 'DATE'.
+  LS_FCAT-COLTEXT = '일자'.
+  LS_FCAT-KEY = 'X'.
+  APPEND LS_FCAT TO GT_GL_FCAT.
+
+  CLEAR LS_FCAT.
+  LS_FCAT-FIELDNAME = 'DEBIT'.
+  LS_FCAT-COLTEXT = '차변'.
+  LS_FCAT-CFIELDNAME = 'WAERS'.
+  LS_FCAT-HOTSPOT = 'X'.
+  APPEND LS_FCAT TO GT_GL_FCAT.
+
+  CLEAR LS_FCAT.
+  LS_FCAT-FIELDNAME = 'CREDIT'.
+  LS_FCAT-COLTEXT = '대변'.
+  LS_FCAT-CFIELDNAME = 'WAERS'.
+  LS_FCAT-HOTSPOT = 'X'.
+  APPEND LS_FCAT TO GT_GL_FCAT.
+
+  CLEAR LS_FCAT.
+  LS_FCAT-FIELDNAME = 'BALANCE'.
+  LS_FCAT-COLTEXT = '잔액'.
+  LS_FCAT-CFIELDNAME = 'WAERS'.
+  APPEND LS_FCAT TO GT_GL_FCAT.
+
+  CLEAR LS_FCAT.
+  LS_FCAT-FIELDNAME = 'WAERS'.
+  LS_FCAT-COLTEXT = '통화'.
+  APPEND LS_FCAT TO GT_GL_FCAT.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form GET_GLDATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> NODE_KEY
+*&---------------------------------------------------------------------*
+FORM GET_GLDATA  USING    PV_NODE_KEY.
+
+  DATA: LT_ITEM  TYPE TABLE OF ZTFC_FIT030, " 전표 아이템 테이블
+        LS_ITEM  LIKE LINE OF LT_ITEM,
+        LV_GLTXT TYPE ZTFC_FIT010-GLTXT.
+
+  DATA: LV_BEFORE_GLOUTPUT LIKE GS_GLOUTPUT. " 이전 일자의 GLOUTPUT
+
+  CLEAR GT_GLDATA.
+  CLEAR GT_GLOUTPUT.
+  CLEAR GT_GLDETAIL.
+
+  SELECT SINGLE GLTXT
+    FROM ZTFC_FIT010
+    INTO LV_GLTXT
+    WHERE SKANR = PV_NODE_KEY.
+
+  GS_GL_LAYOUT-GRID_TITLE = '[' && LV_GLTXT && ']'.
+  CALL METHOD GO_GL_ALV_GRID->SET_FRONTEND_LAYOUT
+    EXPORTING
+      IS_LAYOUT = GS_GL_LAYOUT.
+
+
+
+  LOOP AT GT_HEADER INTO GS_HEADER.
+
+*   전표 아이템 조회 (with 일치하는 계정과목명)
+    SELECT *
+      FROM ZTFC_FIT030
+      INTO CORRESPONDING FIELDS OF LS_ITEM
+      WHERE BELNR = GS_HEADER-BELNR
+        AND SKANR = PV_NODE_KEY.
+
+      CLEAR GS_GLDATA.
+      GS_GLDATA-DATE = GS_HEADER-BUDAT. " 전기일자
+      GS_GLDATA-SHKZG = LS_ITEM-SHKZG. " 차대변 구분
+      GS_GLDATA-WRBTR = LS_ITEM-WRBTR. " 금액
+      GS_GLDATA-WAERS = LS_ITEM-WAERS. " 화폐단위
+
+      COLLECT GS_GLDATA INTO GT_GLDATA. " COLLECT : 일자 차대변구분자 금액 => 누적
+    ENDSELECT.
+
+  ENDLOOP.
+
+  IF LINES( GT_GLDATA ) = 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+
+* INTERNAL TABLE에 일자가 이미 존재한다면 UPDATE
+*                         없다면 APPEND
+  LOOP AT GT_GLDATA INTO GS_GLDATA.
+
+*   GLOUTPUT에 존재하는 일자인지 검색
+    CLEAR GS_GLOUTPUT. " SY-SUBRC = 4 떨어지면 기존 GS_GLOUTPUT 값이 초기화 안되므로 CLEAR 해줌. - APPEND 이상한값 방지
+    READ TABLE GT_GLOUTPUT INTO GS_GLOUTPUT WITH TABLE KEY DATE = GS_GLDATA-DATE.
+
+    IF SY-SUBRC = 0. " 검색 결과 존재
+
+      CASE GS_GLDATA-SHKZG.
+        WHEN 'S'.
+          ADD GS_GLDATA-WRBTR TO GS_GLOUTPUT-DEBIT.
+        WHEN 'H'.
+          ADD GS_GLDATA-WRBTR TO GS_GLOUTPUT-CREDIT.
+      ENDCASE.
+
+      MODIFY TABLE GT_GLOUTPUT FROM GS_GLOUTPUT.
+
+    ELSEIF SY-SUBRC = 4. " 검색 결과 없음
+
+      GS_GLOUTPUT-DATE = GS_GLDATA-DATE.
+      GS_GLOUTPUT-DEBIT = 0.
+      GS_GLOUTPUT-CREDIT = 0.
+      GS_GLOUTPUT-BALANCE = 0.
+      GS_GLOUTPUT-WAERS = 'KRW'.
+
+      CASE GS_GLDATA-SHKZG.
+        WHEN 'S'.
+          ADD GS_GLDATA-WRBTR TO GS_GLOUTPUT-DEBIT.
+        WHEN 'H'.
+          ADD GS_GLDATA-WRBTR TO GS_GLOUTPUT-CREDIT.
+      ENDCASE.
+
+      APPEND GS_GLOUTPUT TO GT_GLOUTPUT.
+
+    ENDIF.
+
+  ENDLOOP.
+
+  SORT GT_GLOUTPUT BY DATE ASCENDING.
+  LOOP AT GT_GLOUTPUT INTO GS_GLOUTPUT.
+
+    IF SY-TABIX = 1. " 첫번째 ROW 잔액
+
+      CASE PV_NODE_KEY+0(1). " 자산, 부채, 자본, 수익, 비용 종류 추출
+        WHEN 1 OR 5. " 자산, 비용 : 차변 +
+          GS_GLOUTPUT-BALANCE = GS_GLOUTPUT-DEBIT - GS_GLOUTPUT-CREDIT.
+        WHEN 2 OR 3 OR 4." 부채, 자본, 수익 : 대변 +
+          GS_GLOUTPUT-BALANCE = GS_GLOUTPUT-CREDIT - GS_GLOUTPUT-DEBIT.
+      ENDCASE.
+
+    ELSE. " 두번째 이후 ROW 잔액
+
+      READ TABLE GT_GLOUTPUT INTO LV_BEFORE_GLOUTPUT INDEX SY-TABIX - 1.
+      CASE PV_NODE_KEY+0(1).
+        WHEN 1 OR 5. " 자산, 비용 : 차변 +
+          GS_GLOUTPUT-BALANCE = GS_GLOUTPUT-DEBIT - GS_GLOUTPUT-CREDIT.
+        WHEN 2 OR 3 OR 4." 부채, 자본, 수익 : 대변 +
+          GS_GLOUTPUT-BALANCE = GS_GLOUTPUT-CREDIT - GS_GLOUTPUT-DEBIT.
+      ENDCASE.
+      ADD LV_BEFORE_GLOUTPUT-BALANCE TO GS_GLOUTPUT-BALANCE.
+
+    ENDIF.
+
+    MODIFY GT_GLOUTPUT FROM GS_GLOUTPUT.
+
+  ENDLOOP.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_GL_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_GL_LAYOUT .
+  GS_GL_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_GL_LAYOUT-NO_TOOLBAR = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DETAIL_SELECTED_GLOUTPUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM DETAIL_SELECTED_GLOUTPUT
+  USING PV_NODE_KEY
+        PV_SHKZG.
+
+  DATA: LT_ROWS  TYPE LVC_T_ROID,
+        LS_ROW   LIKE LINE OF LT_ROWS,
+        LV_YEAR  TYPE I,
+        LV_MM    TYPE I,
+        LV_DD    TYPE I,
+        LV_TITLE TYPE STRING.
+
+  CALL METHOD GO_GL_ALV_GRID->GET_SELECTED_ROWS
+    IMPORTING
+      ET_ROW_NO = LT_ROWS.
+
+  IF LT_ROWS IS INITIAL.
+    MESSAGE S132(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+  ELSE.
+    READ TABLE LT_ROWS INTO LS_ROW INDEX 1.
+    READ TABLE GT_GLOUTPUT INTO GS_GLOUTPUT INDEX LS_ROW-ROW_ID.
+
+    LV_YEAR = GS_GLOUTPUT-DATE+0(4).
+    LV_MM = GS_GLOUTPUT-DATE+4(2).
+    LV_DD = GS_GLOUTPUT-DATE+6(2).
+    LV_TITLE = LV_YEAR && `년 ` && LV_MM && `월 ` && LV_DD && `일`.
+
+    GS_DETAIL_LAYOUT-GRID_TITLE = '[' && LV_TITLE && ']'.
+    CALL METHOD GO_DETAIL_ALV_GRID->SET_FRONTEND_LAYOUT
+      EXPORTING
+        IS_LAYOUT = GS_DETAIL_LAYOUT.
+
+
+    SELECT BELNR BUZEI GJAHR BLART LIFNR
+           KUNNR WRBTR WAERS SGTXT PERNR
+           BUDAT PERNAME
+      INTO CORRESPONDING FIELDS OF TABLE GT_GLDETAIL
+      FROM ZVFCFI0010D
+        WHERE BUDAT = GS_GLOUTPUT-DATE
+          AND SHKZG = PV_SHKZG
+          AND SKANR = PV_NODE_KEY.
+
+    IF LINES( GT_GLDETAIL ) = 0.
+      MESSAGE S116(ZFC_DUMPTRUCK).
+    ENDIF.
+
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_DETAIL_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_DETAIL_FCAT .
+  DATA: LS_DETAIL_FCAT TYPE LVC_S_FCAT.
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'BELNR'.
+  LS_DETAIL_FCAT-COLTEXT = '전표 번호'.
+  LS_DETAIL_FCAT-KEY = 'X'.
+  LS_DETAIL_FCAT-HOTSPOT = 'X'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'BUZEI'.
+  LS_DETAIL_FCAT-COLTEXT = '아이템 번호'.
+  LS_DETAIL_FCAT-KEY = 'X'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'BLART'.
+  LS_DETAIL_FCAT-COLTEXT = '전표 유형'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'WRBTR'.
+  LS_DETAIL_FCAT-COLTEXT = '금액'.
+  LS_DETAIL_FCAT-CFIELDNAME = 'WAERS'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'WAERS'.
+  LS_DETAIL_FCAT-COLTEXT = '통화'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'LIFNR'.
+  LS_DETAIL_FCAT-COLTEXT = '거래처 코드'.
+  LS_DETAIL_FCAT-HOTSPOT = 'X'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'KUNNR'.
+  LS_DETAIL_FCAT-COLTEXT = '고객 코드'.
+  LS_DETAIL_FCAT-HOTSPOT = 'X'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'PERNR'.
+  LS_DETAIL_FCAT-COLTEXT = '담당자'.
+  LS_DETAIL_FCAT-HOTSPOT = 'X'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+
+
+  CLEAR LS_DETAIL_FCAT.
+  LS_DETAIL_FCAT-FIELDNAME = 'SGTXT'.
+  LS_DETAIL_FCAT-COLTEXT = '적요'.
+  APPEND LS_DETAIL_FCAT TO GT_DEATIL_FCAT.
+
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_DETAIL_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_DETAIL_LAYOUT .
+  GS_DETAIL_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_DETAIL_LAYOUT-NO_TOOLBAR = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DETAIL_SELECTED_BELNR
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> LV_ROW_ID
+*&---------------------------------------------------------------------*
+FORM DETAIL_SELECTED_BELNR USING PV_ROW_ID.
+
+  READ TABLE GT_GLDETAIL INTO GS_GLDETAIL INDEX PV_ROW_ID.
+
+  CALL SCREEN 110
+    STARTING AT 5 5.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_FCAT .
+  DATA: LS_ITEM_FCAT TYPE LVC_S_FCAT.
+
+  LS_ITEM_FCAT-FIELDNAME = 'BUZEI'.
+  LS_ITEM_FCAT-COLTEXT = '아이템 번호'.
+  LS_ITEM_FCAT-KEY = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SKANR'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목 코드'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'GLTXT'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'DEBIT'.
+  LS_ITEM_FCAT-COLTEXT = '차변'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'..
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CREDIT'.
+  LS_ITEM_FCAT-COLTEXT = '대변'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-COLTEXT = '통화'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'LIFNR'.
+  LS_ITEM_FCAT-COLTEXT = '공급업체 코드'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CLITNM'.
+  LS_ITEM_FCAT-COLTEXT = '공급업체명'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'KUNNR'.
+  LS_ITEM_FCAT-COLTEXT = '고객 코드'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CUSTNAME'.
+  LS_ITEM_FCAT-COLTEXT = '고객명'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SGTXT'.
+  LS_ITEM_FCAT-COLTEXT = '적요'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_LAYOUT .
+  GS_ITEM_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_ITEM_LAYOUT-NO_TOOLBAR = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DETAIL_SELECTED_KUNNR
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> LV_ROW_ID
+*&---------------------------------------------------------------------*
+FORM DETAIL_SELECTED_KUNNR USING PV_ROW_ID.
+
+  READ TABLE GT_GLDETAIL INTO GS_GLDETAIL INDEX PV_ROW_ID.
+
+  IF GS_GLDETAIL-KUNNR IS INITIAL.
+    MESSAGE S122(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
+  CALL SCREEN 130
+    STARTING AT 5 5.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DETAIL_SELECTED_LIFNR
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> LV_ROW_ID
+*&---------------------------------------------------------------------*
+FORM DETAIL_SELECTED_LIFNR USING PV_ROW_ID.
+
+  READ TABLE GT_GLDETAIL INTO GS_GLDETAIL INDEX PV_ROW_ID.
+
+  IF GS_GLDETAIL-LIFNR IS INITIAL.
+    MESSAGE S123(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
+  CALL SCREEN 120
+    STARTING AT 5 5.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DETAIL_SELECTED_PERNR
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> LV_ROW_ID
+*&---------------------------------------------------------------------*
+FORM DETAIL_SELECTED_PERNR USING PV_ROW_ID.
+  READ TABLE GT_GLDETAIL INTO GS_GLDETAIL INDEX PV_ROW_ID.
+
+  IF GS_GLDETAIL-PERNR IS INITIAL.
+    MESSAGE S121(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
+  CALL SCREEN 140
+    STARTING AT 5 5.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form EXPAND_TREE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM EXPAND_TREE .
+  CALL METHOD GO_ALV_TREE->EXPAND_ROOT_NODES
+    EXPORTING
+*     LEVEL_COUNT         =
+      EXPAND_SUBTREE      = 'X'
+    EXCEPTIONS
+      FAILED              = 1
+      ILLEGAL_LEVEL_COUNT = 2
+      CNTL_SYSTEM_ERROR   = 3
+      OTHERS              = 4.
+  IF SY-SUBRC <> 0.
+*   Implement suitable error handling here
+  ENDIF.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form COLLAPSE_TREE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM COLLAPSE_TREE .
+
+  CALL METHOD GO_ALV_TREE->COLLAPSE_ALL_NODES
+    EXCEPTIONS
+      FAILED            = 1
+      CNTL_SYSTEM_ERROR = 2
+      OTHERS            = 3.
+  IF SY-SUBRC <> 0.
+*   Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form EXPAND_DIR
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> NODE_KEY
+*&---------------------------------------------------------------------*
+FORM EXPAND_DIR USING PV_NODE_KEY.
+
+  CALL METHOD GO_ALV_TREE->EXPAND_NODE
+    EXPORTING
+      NODE_KEY            = PV_NODE_KEY
+*      LEVEL_COUNT         =
+*      EXPAND_SUBTREE      =
+    EXCEPTIONS
+      FAILED              = 1
+      ILLEGAL_LEVEL_COUNT = 2
+      CNTL_SYSTEM_ERROR   = 3
+      NODE_NOT_FOUND      = 4
+      CANNOT_EXPAND_LEAF  = 5
+      OTHERS              = 6.
+  IF SY-SUBRC <> 0.
+*   Implement suitable error handling here
+  ENDIF.
+
+
+
+
+ENDFORM.
