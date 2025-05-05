@@ -1,0 +1,644 @@
+*&---------------------------------------------------------------------*
+*& Include          MZFCFI0010O01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0100 OUTPUT.
+  SET PF-STATUS 'S100'.
+  SET TITLEBAR 'T100'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0200 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0200 OUTPUT.
+  SET PF-STATUS 'S200'.
+  SET TITLEBAR 'T200'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_HEADER_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_HEADER_ALV OUTPUT.
+
+  DATA: LV_ALL    TYPE I,
+        LV_REJECT TYPE I.
+
+  IF GO_HEADER_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_HEADER_CONTAINER
+      EXPORTING
+*       PARENT                      =
+        CONTAINER_NAME              = 'HEADER_AREA'
+*       STYLE                       =
+*       LIFETIME                    = lifetime_default
+*       REPID                       =
+*       DYNNR                       =
+*       NO_AUTODEF_PROGID_DYNNR     =
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_HEADER_ALV_GRID
+      EXPORTING
+*       I_SHELLSTYLE      = 0
+*       I_LIFETIME        =
+        I_PARENT          = GO_HEADER_CONTAINER
+        I_APPL_EVENTS     = 'X'
+*       I_PARENTDBG       =
+*       I_APPLOGPARENT    =
+*       I_GRAPHICSPARENT  =
+*       I_NAME            =
+*       I_FCAT_COMPLETE   = SPACE
+*       O_PREVIOUS_SRAL_HANDLER =
+*       I_USE_ONE_UX_APPEARANCE = ABAP_FALSE
+*       O_COMMON_HUB      =
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_HEADER_FCAT.
+    PERFORM SET_HEADER_LAYOUT.
+    PERFORM SET_HEADER_SORT.
+
+    SET HANDLER:
+      LCL_EVENT_HANDLER=>ON_HOTSPOT_CLICK FOR GO_HEADER_ALV_GRID,
+      LCL_EVENT_HANDLER=>ON_TOOLBAR FOR GO_HEADER_ALV_GRID,
+      LCL_EVENT_HANDLER=>ON_USER_COMMAND FOR GO_HEADER_ALV_GRID.
+
+    CALL METHOD GO_HEADER_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+*       I_BUFFER_ACTIVE               =
+*       I_BYPASSING_BUFFER            =
+*       I_CONSISTENCY_CHECK           =
+*       I_STRUCTURE_NAME              =
+*       IS_VARIANT                    =
+*       I_SAVE                        =
+*       I_DEFAULT                     = 'X'
+        IS_LAYOUT                     = GS_HEADER_LAYOUT
+*       IS_PRINT                      =
+*       IT_SPECIAL_GROUPS             =
+*       IT_TOOLBAR_EXCLUDING          =
+*       IT_HYPERLINK                  =
+*       IT_ALV_GRAPHICS               =
+*       IT_EXCEPT_QINFO               =
+*       IR_SALV_ADAPTER               =
+      CHANGING
+        IT_OUTTAB                     = GT_HEADER_DATA
+        IT_FIELDCATALOG               = GT_HEADER_FCAT
+*       IT_SORT                       = GT_HEADER_SORT
+*       IT_FILTER                     =
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+  ELSE.
+
+    PERFORM SETTING_HEADER_STATUS_DATA.
+
+    CALL METHOD GO_HEADER_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*   Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_ITEM_CREATE_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_ITEM_CREATE_ALV OUTPUT.
+
+  ZTFC_FIT020-BLART = 'SA'.
+  ZTFC_FIT020-BLDAT = SY-DATUM.
+  ZSFC_FI_0020-WAERS = 'KRW'.
+  ZSFC_FI_0010-WAERS = 'KRW'.
+
+  IF GO_ITEM_CREATE_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_ITEM_CREATE_CONTAINER
+      EXPORTING
+*       PARENT                      =
+        CONTAINER_NAME              = 'ITEM_CREATE_AREA'
+*       STYLE                       =
+*       LIFETIME                    = lifetime_default
+*       REPID                       =
+*       DYNNR                       =
+*       NO_AUTODEF_PROGID_DYNNR     =
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_ITEM_CREATE_ALV_GRID
+      EXPORTING
+*       I_SHELLSTYLE      = 0
+*       I_LIFETIME        =
+        I_PARENT          = GO_ITEM_CREATE_CONTAINER
+        I_APPL_EVENTS     = 'X'
+*       I_PARENTDBG       =
+*       I_APPLOGPARENT    =
+*       I_GRAPHICSPARENT  =
+*       I_NAME            =
+*       I_FCAT_COMPLETE   = SPACE
+*       O_PREVIOUS_SRAL_HANDLER =
+*       I_USE_ONE_UX_APPEARANCE = ABAP_FALSE
+*       O_COMMON_HUB      =
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_ITEM_CREATE_LAYOUT.
+    PERFORM SET_ITEM_CREATE_FCAT.
+    SET HANDLER:
+      LCL_ITEM_CREATE_EVENT_HANDLER=>ON_TOOLBAR FOR GO_ITEM_CREATE_ALV_GRID,
+      LCL_ITEM_CREATE_EVENT_HANDLER=>ON_USER_COMMAND FOR GO_ITEM_CREATE_ALV_GRID.
+
+    CALL METHOD GO_ITEM_CREATE_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+*       I_BUFFER_ACTIVE               =
+*       I_BYPASSING_BUFFER            =
+*       I_CONSISTENCY_CHECK           =
+*       I_STRUCTURE_NAME              = 'ZTFC_FIT030'
+*       IS_VARIANT                    =
+*       I_SAVE                        =
+*       I_DEFAULT                     = 'X'
+        IS_LAYOUT                     = GS_ITEM_CREATE_LAYOUT
+*       IS_PRINT                      =
+*       IT_SPECIAL_GROUPS             =
+*       IT_TOOLBAR_EXCLUDING          =
+*       IT_HYPERLINK                  =
+*       IT_ALV_GRAPHICS               =
+*       IT_EXCEPT_QINFO               =
+*       IR_SALV_ADAPTER               =
+      CHANGING
+        IT_OUTTAB                     = GT_ITEM_CREATE_DATA
+        IT_FIELDCATALOG               = GT_ITEM_CREATE_FCAT
+*       IT_SORT                       =
+*       IT_FILTER                     =
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+  ELSE.
+    CALL METHOD GO_ITEM_CREATE_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_ITEM_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_ITEM_ALV OUTPUT.
+
+  IF GO_ITEM_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_ITEM_CONTAINER
+      EXPORTING
+*       PARENT                      =
+        CONTAINER_NAME              = 'ITEM_AREA'
+*       STYLE                       =
+*       LIFETIME                    = lifetime_default
+*       REPID                       =
+*       DYNNR                       =
+*       NO_AUTODEF_PROGID_DYNNR     =
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_ITEM_ALV_GRID
+      EXPORTING
+*       I_SHELLSTYLE      = 0
+*       I_LIFETIME        =
+        I_PARENT          = GO_ITEM_CONTAINER
+*       I_APPL_EVENTS     = SPACE
+*       I_PARENTDBG       =
+*       I_APPLOGPARENT    =
+*       I_GRAPHICSPARENT  =
+*       I_NAME            =
+*       I_FCAT_COMPLETE   = SPACE
+*       O_PREVIOUS_SRAL_HANDLER =
+*       I_USE_ONE_UX_APPEARANCE = ABAP_FALSE
+*       O_COMMON_HUB      =
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_ITEM_FCAT.
+    PERFORM SET_ITEM_LAYOUT.
+
+    SET HANDLER:
+      LCL_ITEM_SEARCH_EVENT_HANDLER=>ON_HOTSPOT_CLICK FOR GO_ITEM_ALV_GRID.
+
+    CALL METHOD GO_ITEM_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+*       I_BUFFER_ACTIVE               =
+*       I_BYPASSING_BUFFER            =
+*       I_CONSISTENCY_CHECK           =
+*       I_STRUCTURE_NAME              = 'ZTFC_FIT030'
+*       IS_VARIANT                    =
+*       I_SAVE                        =
+*       I_DEFAULT                     = 'X'
+        IS_LAYOUT                     = GS_ITEM_LAYOUT
+*       IS_PRINT                      =
+*       IT_SPECIAL_GROUPS             =
+*       IT_TOOLBAR_EXCLUDING          =
+*       IT_HYPERLINK                  =
+*       IT_ALV_GRAPHICS               =
+*       IT_EXCEPT_QINFO               =
+*       IR_SALV_ADAPTER               =
+      CHANGING
+        IT_OUTTAB                     = GT_ITEM_DATA
+        IT_FIELDCATALOG               = GT_ITEM_FCAT
+*       IT_SORT                       =
+*       IT_FILTER                     =
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+  ELSE.
+
+    PERFORM INIT_ITEM_ALV_GRID_TITLE.
+
+    CALL METHOD GO_ITEM_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0110 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0110 OUTPUT.
+  SET PF-STATUS 'S110'.
+  SET TITLEBAR 'T110' WITH GS_HEADER_DATA-BELNR.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_LISTBOX OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_LISTBOX OUTPUT.
+
+*  DATA: LT_BKSTAT TYPE TABLE OF DD07V,
+*        LS_BKSTAT LIKE LINE OF LT_BKSTAT.
+*
+*  CLEAR: GT_LISTBOX.
+*
+*  CALL FUNCTION 'GET_DOMAIN_VALUES'
+*    EXPORTING
+*      DOMNAME         = 'ZDFC_BKSTAT'
+*    TABLES
+*      VALUES_TAB      = LT_BKSTAT
+*    EXCEPTIONS
+*      NO_VALUES_FOUND = 1
+*      OTHERS          = 2.
+*  IF SY-SUBRC <> 0.
+** Implement suitable error handling here
+*  ENDIF.
+*
+*
+*  LOOP AT LT_BKSTAT INTO LS_BKSTAT.
+*
+*    GS_LISTBOX-KEY = LS_BKSTAT-DOMVALUE_L.
+*
+*    CALL FUNCTION 'RKE_DOMVALUE_TEXT_GET'
+*      EXPORTING
+*        I_DOMA             = 'ZDFC_BKSTAT'
+*        I_DOMVALUE         = GS_LISTBOX-KEY
+*        I_LANGU            = SY-LANGU
+*      IMPORTING
+*        E_DDTEXT           = GS_LISTBOX-TEXT
+*      EXCEPTIONS
+*        DOMNAME_NOT_FOUND  = 1
+*        DOMVALUE_NOT_FOUND = 2
+*        OTHERS             = 3.
+*    IF SY-SUBRC <> 0.
+** Implement suitable error handling here
+*    ENDIF.
+
+*    GS_LISTBOX-KEY = 'T'.
+*    GS_LISTBOX-TEXT = 'test'.
+*    APPEND GS_LISTBOX TO GT_LISTBOX.
+
+*    CALL FUNCTION 'VRM_SET_VALUES'
+*      EXPORTING
+*        ID     = ''
+*        VALUES = GT_LISTBOX.
+*    IF SY-SUBRC <> 0.
+** Implement suitable error handling here
+*    ENDIF.
+
+*  ENDLOOP.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0300 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0300 OUTPUT.
+  SET PF-STATUS 'S300'.
+  SET TITLEBAR 'T300' WITH GS_HEADER_DATA-BELNR.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_ITEM_UPDATE_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_ITEM_UPDATE_ALV OUTPUT.
+
+* ALV EDIT 설정
+  LOOP AT GT_ITEM_UPDATE_DATA INTO GS_ITEM_UPDATE_DATA.
+    PERFORM SET_ITEM_UPDATE_CELLSTYL
+      CHANGING GS_ITEM_UPDATE_DATA.
+    MODIFY TABLE GT_ITEM_UPDATE_DATA FROM GS_ITEM_UPDATE_DATA TRANSPORTING CELLSTYL.
+  ENDLOOP.
+
+  IF GO_ITEM_UPDATE_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_ITEM_UPDATE_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'ITEM_UPDATE_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_ITEM_UPDATE_ALV_GRID
+      EXPORTING
+*       I_SHELLSTYLE      = 0
+*       I_LIFETIME        =
+        I_PARENT          = GO_ITEM_UPDATE_CONTAINER
+*       I_APPL_EVENTS     = SPACE
+*       I_PARENTDBG       =
+*       I_APPLOGPARENT    =
+*       I_GRAPHICSPARENT  =
+*       I_NAME            =
+*       I_FCAT_COMPLETE   = SPACE
+*       O_PREVIOUS_SRAL_HANDLER =
+*       I_USE_ONE_UX_APPEARANCE = ABAP_FALSE
+*       O_COMMON_HUB      =
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_ITEM_UPDATE_FCAT.
+    PERFORM SET_ITEM_UPDATE_LAYOUT.
+
+    CALL METHOD GO_ITEM_UPDATE_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+*       I_BUFFER_ACTIVE               =
+*       I_BYPASSING_BUFFER            =
+*       I_CONSISTENCY_CHECK           =
+*       I_STRUCTURE_NAME              =
+*       IS_VARIANT                    =
+*       I_SAVE                        =
+*       I_DEFAULT                     = 'X'
+        IS_LAYOUT                     = GS_ITEM_UPDATE_LAYOUT
+*       IS_PRINT                      =
+*       IT_SPECIAL_GROUPS             =
+*       IT_TOOLBAR_EXCLUDING          =
+*       IT_HYPERLINK                  =
+*       IT_ALV_GRAPHICS               =
+*       IT_EXCEPT_QINFO               =
+*       IR_SALV_ADAPTER               =
+      CHANGING
+        IT_OUTTAB                     = GT_ITEM_UPDATE_DATA
+        IT_FIELDCATALOG               = GT_ITEM_UPDATE_FCAT
+*       IT_SORT                       =
+*       IT_FILTER                     =
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ELSE.
+
+
+    CALL METHOD GO_ITEM_UPDATE_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0120 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0120 OUTPUT.
+  SET PF-STATUS 'S120'.
+  SET TITLEBAR 'T120'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_CLIENT_DATA OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_CLIENT_DATA OUTPUT.
+
+  CLEAR ZSFC_FI_0120.
+
+  SELECT SINGLE *
+    FROM ZTFC_SDT010
+    INTO CORRESPONDING FIELDS OF ZSFC_FI_0120
+    WHERE KUNNR = GS_ITEM_DATA-KUNNR.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE S122(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    LEAVE TO SCREEN 0.
+  ENDIF.
+
+
+  CALL FUNCTION 'RKE_DOMVALUE_TEXT_GET'
+    EXPORTING
+      I_DOMA             = 'ZDFC_CUSTTYPE'
+      I_DOMVALUE         = ZSFC_FI_0120-CUSTTYPE
+      I_LANGU            = SY-LANGU
+    IMPORTING
+      E_DDTEXT           = ZSFC_FI_0120-CUSTTYPE_TXT
+    EXCEPTIONS
+      DOMNAME_NOT_FOUND  = 1
+      DOMVALUE_NOT_FOUND = 2
+      OTHERS             = 3.
+  IF SY-SUBRC <> 0.
+    MESSAGE '고객 등급 DOMVALUE 조회 실패' TYPE 'S' DISPLAY LIKE 'W'.
+  ENDIF.
+
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0130 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0130 OUTPUT.
+  SET PF-STATUS 'S130'.
+  SET TITLEBAR 'T130'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_SUPPLIER_DATA OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_SUPPLIER_DATA OUTPUT.
+
+  CLEAR ZTFC_MMT020.
+
+  SELECT SINGLE *
+    FROM ZTFC_MMT020
+    INTO CORRESPONDING FIELDS OF ZTFC_MMT020
+    WHERE LIFNR = GS_ITEM_DATA-LIFNR.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE S123(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    LEAVE TO SCREEN 0.
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0140 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0140 OUTPUT.
+  SET PF-STATUS 'S140'.
+  SET TITLEBAR 'T140'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_EMPLOYEE_DATA OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_EMPLOYEE_DATA OUTPUT.
+
+  CLEAR ZSFC_FI_0060.
+
+  SELECT SINGLE *
+    FROM ZTFC_SDT040
+    INTO CORRESPONDING FIELDS OF ZSFC_FI_0060
+    WHERE PERNR = GS_HEADER_DATA-PERNR.
+
+  SELECT SINGLE STRG TELF3
+    FROM ZTFC_SDT050
+    INTO CORRESPONDING FIELDS OF ZSFC_FI_0060
+    WHERE BUKRS = ZSFC_FI_0060-BUKRS
+      AND ORGEH = ZSFC_FI_0060-ORGEH.
+
+  SELECT SINGLE BUTXT
+    FROM ZTFC_SDT030
+    INTO ZSFC_FI_0060-BUTXT
+    WHERE BUKRS = ZSFC_FI_0060-BUKRS.
+
+
+
+  IF SY-SUBRC <> 0.
+    MESSAGE S121(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    LEAVE TO SCREEN 0.
+  ENDIF.
+
+ENDMODULE.
