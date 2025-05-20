@@ -1,0 +1,266 @@
+*&---------------------------------------------------------------------*
+*& Include          ZFCRFI0050I01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0100 INPUT.
+  CASE OK_CODE.
+    WHEN 'BACK'.
+      LEAVE TO SCREEN 0.
+    WHEN 'RESET'.
+      PERFORM RESET_INOUT_DATA.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  EXIT  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE EXIT INPUT.
+  CASE OK_CODE.
+    WHEN 'EXIT'.
+      LEAVE TO SCREEN 0.
+    WHEN 'CANCEL'.
+      LEAVE PROGRAM.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0110  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0110 INPUT.
+  CASE OK_CODE.
+    WHEN 'SEARCH'.
+      PERFORM SEARCH_CLIENT_INOUT_DATA.
+    WHEN 'RESET'.
+      PERFORM RESET_INOUT_DATA.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0120  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0120 INPUT.
+  CASE OK_CODE.
+    WHEN 'SEARCH'.
+      PERFORM SEARCH_SUPPLIER_INOUT_DATA.
+    WHEN 'RESET'.
+      PERFORM RESET_INOUT_DATA.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Form SEARCH_CLIENT_INOUT_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SEARCH_CLIENT_INOUT_DATA .
+
+  DATA: RT_BLDAT TYPE RANGE OF ZTFC_FIT020-BLDAT, " 기간(증빙일자)
+        RS_BLDAT LIKE LINE OF RT_BLDAT,
+        RT_KUNNR TYPE RANGE OF ZTFC_FIT030-KUNNR, " 고객 코드
+        RS_KUNNR LIKE LINE OF RT_KUNNR,
+        RT_SHKZG TYPE RANGE OF ZTFC_FIT030-SHKZG, " 차대변 구분
+        RS_SHKZG LIKE LINE OF RT_SHKZG.
+
+  DATA: LV_BEGIN_DAT TYPE ZTFC_FIT020-BLDAT,
+        LV_END_DAT   TYPE ZTFC_FIT020-BLDAT.
+
+  LV_BEGIN_DAT = ZSFC_FI_0220-BEGIN_DAT.
+  LV_END_DAT = ZSFC_FI_0220-END_DAT.
+
+* 기간(증빙일자)
+  IF LV_BEGIN_DAT IS NOT INITIAL AND LV_END_DAT IS INITIAL. "  = BEGIN
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION = 'EQ'.
+    RS_BLDAT-LOW = LV_BEGIN_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ELSEIF LV_BEGIN_DAT IS NOT INITIAL AND LV_END_DAT IS NOT INITIAL. " = BEGIN ~ END
+    IF LV_BEGIN_DAT > LV_END_DAT. " FROM TO 에서 FROM의 날짜가 더 크다면
+      MESSAGE S161(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION = 'BT'.
+    RS_BLDAT-LOW = LV_BEGIN_DAT.
+    RS_BLDAT-HIGH = LV_END_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ELSEIF LV_BEGIN_DAT IS INITIAL AND LV_END_DAT IS NOT INITIAL. " = ~ END
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION ='LE'.
+    RS_BLDAT-LOW = LV_END_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ENDIF.
+
+* 입출력 구분
+  CASE ZSFC_FI_0220-INOUT_TYPE.
+    WHEN 'I'. " 입금 = 차변(자산 증가)
+      RS_SHKZG-SIGN = 'I'.
+      RS_SHKZG-OPTION = 'EQ'.
+      RS_SHKZG-LOW = 'S'.
+      APPEND RS_SHKZG TO RT_SHKZG.
+    WHEN 'O'. " 출금 = 대변(자산 감소)
+      RS_SHKZG-SIGN = 'I'.
+      RS_SHKZG-OPTION = 'EQ'.
+      RS_SHKZG-LOW = 'H'.
+      APPEND RS_SHKZG TO RT_SHKZG.
+  ENDCASE.
+
+* 고객 코드
+  IF ZSFC_FI_0220-KUNNR IS NOT INITIAL.
+    RS_KUNNR-SIGN = 'I'.
+    RS_KUNNR-OPTION = 'EQ'.
+    RS_KUNNR-LOW = ZSFC_FI_0220-KUNNR.
+    APPEND RS_KUNNR TO RT_KUNNR.
+  ENDIF.
+
+  SELECT A~SHKZG A~WRBTR A~WAERS A~BLDAT A~BKTXT A~BELNR
+         B~CUSTNAME
+    INTO CORRESPONDING FIELDS OF TABLE GT_INOUT
+    FROM ZVFCFI0010D AS A
+    LEFT JOIN ZTFC_SDT010 AS B ON A~KUNNR = B~KUNNR
+    WHERE A~SKANR = 1010000002 " 보통 예금
+      AND A~BKSTAT = 1         " 승인
+      AND A~BLDAT IN RT_BLDAT  " 증빙 일자
+      AND A~SHKZG IN RT_SHKZG  " 차대변구분(입출금)
+      AND A~KUNNR IN RT_KUNNR  " 고객 코드
+      AND A~LIFNR = SPACE.     " 공급업체 내역은 제외
+
+  IF LINES( GT_INOUT ) = 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+* 입출금 텍스트
+  LOOP AT GT_INOUT INTO GS_INOUT.
+    CASE GS_INOUT-SHKZG.
+      WHEN 'S'.
+        GS_INOUT-INOUT_TXT = '입금'.
+      WHEN 'H'.
+        GS_INOUT-INOUT_TXT = '출금'.
+    ENDCASE.
+    MODIFY GT_INOUT FROM GS_INOUT.
+  ENDLOOP.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SEARCH_SUPPLIER_INOUT_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SEARCH_SUPPLIER_INOUT_DATA .
+
+  DATA: RT_BLDAT TYPE RANGE OF ZTFC_FIT020-BLDAT, " 기간(증빙일자)
+        RS_BLDAT LIKE LINE OF RT_BLDAT,
+        RT_LIFNR TYPE RANGE OF ZTFC_FIT030-LIFNR, " 공급업체 코드
+        RS_LIFNR LIKE LINE OF RT_LIFNR,
+        RT_SHKZG TYPE RANGE OF ZTFC_FIT030-SHKZG, " 차대변 구분
+        RS_SHKZG LIKE LINE OF RT_SHKZG.
+
+  DATA: LV_BEGIN_DAT TYPE ZTFC_FIT020-BLDAT,
+        LV_END_DAT   TYPE ZTFC_FIT020-BLDAT.
+
+  LV_BEGIN_DAT = ZSFC_FI_0220-BEGIN_DAT.
+  LV_END_DAT = ZSFC_FI_0220-END_DAT.
+
+* 기간(증빙일자)
+  IF LV_BEGIN_DAT IS NOT INITIAL AND LV_END_DAT IS INITIAL. "  = BEGIN
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION = 'EQ'.
+    RS_BLDAT-LOW = LV_BEGIN_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ELSEIF LV_BEGIN_DAT IS NOT INITIAL AND LV_END_DAT IS NOT INITIAL. " = BEGIN ~ END
+    IF LV_BEGIN_DAT > LV_END_DAT. " FROM TO 에서 FROM의 날짜가 더 크다면
+      MESSAGE S161(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION = 'BT'.
+    RS_BLDAT-LOW = LV_BEGIN_DAT.
+    RS_BLDAT-HIGH = LV_END_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ELSEIF LV_BEGIN_DAT IS INITIAL AND LV_END_DAT IS NOT INITIAL. " = ~ END
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION ='LE'.
+    RS_BLDAT-LOW = LV_END_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ENDIF.
+
+* 입출력 구분
+  CASE ZSFC_FI_0220-INOUT_TYPE.
+    WHEN 'I'. " 입금 = 차변(자산 증가)
+      RS_SHKZG-SIGN = 'I'.
+      RS_SHKZG-OPTION = 'EQ'.
+      RS_SHKZG-LOW = 'S'.
+      APPEND RS_SHKZG TO RT_SHKZG.
+    WHEN 'O'. " 출금 = 대변(자산 감소)
+      RS_SHKZG-SIGN = 'I'.
+      RS_SHKZG-OPTION = 'EQ'.
+      RS_SHKZG-LOW = 'H'.
+      APPEND RS_SHKZG TO RT_SHKZG.
+  ENDCASE.
+
+* 공급업체
+  IF ZSFC_FI_0220-LIFNR IS NOT INITIAL.
+    RS_LIFNR-SIGN = 'I'.
+    RS_LIFNR-OPTION = 'EQ'.
+    RS_LIFNR-LOW = ZSFC_FI_0220-LIFNR.
+    APPEND RS_LIFNR TO RT_LIFNR.
+  ENDIF.
+
+  SELECT A~SHKZG A~WRBTR A~WAERS A~BLDAT A~BKTXT A~BELNR
+         B~CLITNM
+    INTO CORRESPONDING FIELDS OF TABLE GT_INOUT
+    FROM ZVFCFI0010D AS A
+    LEFT JOIN ZTFC_MMT020 AS B ON A~LIFNR = B~LIFNR
+    WHERE A~SKANR = 1010000002 " 보통 예금
+      AND A~BKSTAT = 1         " 승인
+      AND A~BLDAT IN RT_BLDAT  " 증빙 일자
+      AND A~SHKZG IN RT_SHKZG  " 차대변구분(입출금)
+      AND A~LIFNR IN RT_LIFNR  " 공급업체 코드
+      AND A~KUNNR = SPACE.     " 고객 입출금 내역은 제외
+
+  IF LINES( GT_INOUT ) = 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+* 입출금 텍스트
+  LOOP AT GT_INOUT INTO GS_INOUT.
+    CASE GS_INOUT-SHKZG.
+      WHEN 'S'.
+        GS_INOUT-INOUT_TXT = '입금'.
+      WHEN 'H'.
+        GS_INOUT-INOUT_TXT = '출금'.
+    ENDCASE.
+    MODIFY GT_INOUT FROM GS_INOUT.
+  ENDLOOP.
+
+
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0150  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0150 INPUT.
+  CASE OK_CODE.
+    WHEN 'SEARCH'.
+      PERFORM SEARCH_ALL_INOUT_DATA.
+    WHEN 'RESET'.
+      PERFORM RESET_INOUT_DATA.
+  ENDCASE.
+ENDMODULE.
