@@ -1,0 +1,858 @@
+*&---------------------------------------------------------------------*
+*& Include          ZFCRFI0030F01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_HIERARCHY
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_HIERARCHY .
+
+  IF GT_ACCOUNT IS INITIAL.
+    SELECT *
+      FROM ZTFC_FIT010
+      INTO CORRESPONDING FIELDS OF TABLE GT_ACCOUNT.
+  ENDIF.
+
+  PERFORM INIT_TREE_ASSET.
+  PERFORM INIT_TREE_LIABILITIES.
+  PERFORM INIT_TREE_CAPITAL.
+  PERFORM INIT_TREE_REVENUE.
+  PERFORM INIT_TREE_EXPENSE.
+
+  CALL METHOD GO_ALV_TREE->ADD_NODES
+    EXPORTING
+      TABLE_STRUCTURE_NAME           = 'MTREESNODE'
+      NODE_TABLE                     = GT_NODE
+    EXCEPTIONS
+      ERROR_IN_NODE_TABLE            = 1
+      FAILED                         = 2
+      DP_ERROR                       = 3
+      TABLE_STRUCTURE_NAME_NOT_FOUND = 4
+      OTHERS                         = 5.
+  IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_ASSET
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_ASSET .
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 1. 자산
+  GS_NODE-NODE_KEY = 'DIR_1'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 1-1. 유동자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_2'.
+  GS_NODE-RELATKEY = 'DIR_1'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '유동자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 1-2. 현금및현금성자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_3'.
+  GS_NODE-RELATKEY = 'DIR_2'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '현금및현금성자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '101'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_3'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 1-2. 매출 채권
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_4'.
+  GS_NODE-RELATKEY = 'DIR_2'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '매출채권'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '102' OR SKANR+0(3) = '103'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_4'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 1-2 재고 자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_5'.
+  GS_NODE-RELATKEY = 'DIR_2'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '재고자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '104'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_5'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+*  1-2 유동 자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_6'.
+  GS_NODE-RELATKEY = 'DIR_2'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '기타자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '105'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_6'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 1-1 비유동자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_7'.
+  GS_NODE-RELATKEY = 'DIR_1'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '비유동자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 1-2 유형자산
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_8'.
+  GS_NODE-RELATKEY = 'DIR_7'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '유형자산'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '106'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_8'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_LIABILITIES
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_LIABILITIES .
+
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 2. 부채
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_9'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '부채'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 2-1. 유동부채
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_10'.
+  GS_NODE-RELATKEY = 'DIR_9'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '유동부채'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 2-2. 매입채무
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_11'.
+  GS_NODE-RELATKEY = 'DIR_10'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '매입채무'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '200'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_11'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 2-2. 미지급금
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_12'.
+  GS_NODE-RELATKEY = 'DIR_10'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '미지급금'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '201'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_12'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 2-2. 비유동부채
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_13'.
+  GS_NODE-RELATKEY = 'DIR_9'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '비유동부채'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '202'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_13'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form EXPAND_DIR
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> NODE_KEY
+*&---------------------------------------------------------------------*
+FORM EXPAND_DIR USING PV_NODE_KEY.
+  CALL METHOD GO_ALV_TREE->EXPAND_NODE
+    EXPORTING
+      NODE_KEY            = PV_NODE_KEY
+    EXCEPTIONS
+      FAILED              = 1
+      ILLEGAL_LEVEL_COUNT = 2
+      CNTL_SYSTEM_ERROR   = 3
+      NODE_NOT_FOUND      = 4
+      CANNOT_EXPAND_LEAF  = 5
+      OTHERS              = 6.
+  IF SY-SUBRC <> 0.
+*   Implement suitable error handling here
+  ENDIF.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_BALANCE_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_BALANCE_FCAT .
+
+  DATA: LS_BALANCE_FCAT TYPE LVC_S_FCAT.
+
+  CLEAR LS_BALANCE_FCAT.
+  LS_BALANCE_FCAT-FIELDNAME = 'MON_TXT'.
+  LS_BALANCE_FCAT-COLTEXT = '월'.
+  LS_BALANCE_FCAT-KEY = 'X'.
+  APPEND LS_BALANCE_FCAT TO GT_BALANCE_FCAT.
+
+*  CLEAR LS_BALANCE_FCAT.
+*  LS_BALANCE_FCAT-FIELDNAME = 'CARRYFORWARD'.
+*  LS_BALANCE_FCAT-CFIELDNAME = 'WAERS'.
+*  LS_BALANCE_FCAT-COLTEXT = '이월 금액'.
+*  APPEND LS_BALANCE_FCAT TO GT_BALANCE_FCAT.
+
+  CLEAR LS_BALANCE_FCAT.
+  LS_BALANCE_FCAT-FIELDNAME = 'DEBIT'.
+  LS_BALANCE_FCAT-CFIELDNAME = 'WAERS'.
+  LS_BALANCE_FCAT-COLTEXT = '차변 금액'.
+  LS_BALANCE_FCAT-DO_SUM = 'X'.
+  LS_BALANCE_FCAT-HOTSPOT = 'X'.
+  APPEND LS_BALANCE_FCAT TO GT_BALANCE_FCAT.
+
+  CLEAR LS_BALANCE_FCAT.
+  LS_BALANCE_FCAT-FIELDNAME = 'CREDIT'.
+  LS_BALANCE_FCAT-CFIELDNAME = 'WAERS'.
+  LS_BALANCE_FCAT-COLTEXT = '대변 금액'.
+  LS_BALANCE_FCAT-DO_SUM = 'X'.
+  LS_BALANCE_FCAT-HOTSPOT = 'X'.
+  APPEND LS_BALANCE_FCAT TO GT_BALANCE_FCAT.
+
+  CLEAR LS_BALANCE_FCAT.
+  LS_BALANCE_FCAT-FIELDNAME = 'BALANCE'.
+  LS_BALANCE_FCAT-CFIELDNAME = 'WAERS'.
+  LS_BALANCE_FCAT-COLTEXT = '잔액'.
+  APPEND LS_BALANCE_FCAT TO GT_BALANCE_FCAT.
+
+*  CLEAR LS_BALANCE_FCAT.
+*  LS_BALANCE_FCAT-FIELDNAME = 'CARRYOVER'.
+*  LS_BALANCE_FCAT-CFIELDNAME = 'WAERS'.
+*  LS_BALANCE_FCAT-COLTEXT = '차기이월 금액'.
+*  APPEND LS_BALANCE_FCAT TO GT_BALANCE_FCAT.
+
+  CLEAR LS_BALANCE_FCAT.
+  LS_BALANCE_FCAT-FIELDNAME = 'WAERS'.
+  LS_BALANCE_FCAT-COLTEXT = '통화'.
+  APPEND LS_BALANCE_FCAT TO GT_BALANCE_FCAT.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_BALANCE_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_BALANCE_LAYOUT .
+  GS_BALANCE_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_BALANCE_LAYOUT-NO_TOOLBAR = 'X'.
+  GS_BALANCE_LAYOUT-ZEBRA = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form GET_BALANCE_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> NODE_KEY
+*&---------------------------------------------------------------------*
+FORM GET_BALANCE_DATA USING PV_NODE_KEY.
+
+* 누계액 집계를 위한 work area
+  DATA: LS_DOCUMENT_ITEM TYPE ZTFC_FIT030.
+  DATA: LV_YEARMM TYPE STRING,
+        LV_MONTH  TYPE N LENGTH 2.
+
+* 작년 연도, 이월 금액, 누적 잔액, 통화
+  DATA: LV_PAST_YEAR    TYPE ZTFC_FIT040-GJAHR,
+        LV_BALANCE_SUM  TYPE ZTFC_FIT030-WRBTR,
+        LV_CARRYFORWARD TYPE ZTFC_FIT040-CARRYFORWARD,
+        LV_WAERS        TYPE ZTFC_FIT040-WAERS.
+
+* Grid Title
+  DATA: LV_GLTXT TYPE STRING.
+
+* 차트
+  DATA: ROOT          TYPE REF TO IF_IXML_ELEMENT,
+        CATEGORIES    TYPE REF TO IF_IXML_ELEMENT,
+        CATEGORY      TYPE REF TO IF_IXML_ELEMENT,
+        SERIES_DEBIT  TYPE REF TO IF_IXML_ELEMENT,
+        SERIES_CREDIT TYPE REF TO IF_IXML_ELEMENT,
+        POINT         TYPE REF TO IF_IXML_ELEMENT,
+        VALUE         TYPE REF TO IF_IXML_ELEMENT,
+        XDATA         TYPE XSTRING,
+        DEBIT_STRING  TYPE STRING,
+        CREDIT_STRING TYPE STRING.
+
+* 선택된 계정과목코드로 계정과목명 조회
+  SELECT SINGLE GLTXT
+    FROM ZTFC_FIT010
+    INTO LV_GLTXT
+    WHERE SKANR = PV_NODE_KEY.
+
+* ALV TItle 설정
+  GS_BALANCE_LAYOUT-GRID_TITLE = '[' && LV_GLTXT && ']'.
+  CALL METHOD GO_BALANCE_ALV_GRID->SET_FRONTEND_LAYOUT
+    EXPORTING
+      IS_LAYOUT = GS_BALANCE_LAYOUT.
+
+
+  CALL METHOD GO_CHART_CONTAINER->SET_VISIBLE( EXPORTING VISIBLE = ABAP_TRUE ).
+
+* 차트 - procesing data
+  GO_IXML = CL_IXML=>CREATE( ).
+  GO_IXML_SF = GO_IXML->CREATE_STREAM_FACTORY( ).
+
+* 차트 - create an empty document and set encoding
+  GO_IXML_DATA_DOC = GO_IXML->CREATE_DOCUMENT( ).
+  GO_ENCODING = GO_IXML->CREATE_ENCODING(
+                    BYTE_ORDER    = IF_IXML_ENCODING=>CO_LITTLE_ENDIAN
+                    CHARACTER_SET = 'utf-8' ).
+  GO_IXML_DATA_DOC->SET_ENCODING( GO_ENCODING ).
+
+  ROOT        = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'ChartData' PARENT = GO_IXML_DATA_DOC ).
+  CATEGORIES  = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'Categories' PARENT = ROOT ).
+  SERIES_DEBIT   = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'Series' PARENT = ROOT ).
+  SERIES_CREDIT  = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'Series' PARENT = ROOT ).
+
+  SERIES_DEBIT->SET_ATTRIBUTE( NAME = 'label' VALUE = |{ LV_GLTXT } 차변 (단위 : 원)| ).
+  SERIES_CREDIT->SET_ATTRIBUTE( NAME = 'label' VALUE = |{ LV_GLTXT } 대변 (단위 : 원)| ).
+
+  CLEAR GT_DATA.
+  CLEAR GS_DATA.
+
+* 이월 금액
+  LV_PAST_YEAR = GV_YEAR - 1.
+  SELECT SINGLE CARRYOVER WAERS
+    INTO (LV_CARRYFORWARD, LV_WAERS)
+    FROM ZTFC_FIT040
+    WHERE GJAHR = LV_PAST_YEAR
+      AND SKANR = PV_NODE_KEY
+      AND MON = 13.
+
+  IF SY-SUBRC <> 0.
+    LV_CARRYFORWARD = 0.
+    LV_WAERS = 'KRW'.
+  ENDIF.
+
+  GS_DATA-MON = 0.
+  GS_DATA-MON_TXT = '이월'.
+  GS_DATA-BALANCE = LV_CARRYFORWARD.
+  GS_DATA-WAERS = LV_WAERS.
+  APPEND GS_DATA TO GT_DATA.
+
+  DO 12 TIMES.
+
+    CLEAR GS_DATA.
+    GS_DATA-MON = SY-INDEX.
+    GS_DATA-MON_TXT = SY-INDEX && '월'.
+    GS_DATA-WAERS = 'KRW'.
+
+    LV_MONTH = SY-INDEX.
+    LV_YEARMM = GV_YEAR && LV_MONTH && '%'.
+
+    SELECT *
+      INTO CORRESPONDING FIELDS OF LS_DOCUMENT_ITEM
+      FROM ZTFC_FIT020 AS A
+      INNER JOIN ZTFC_FIT030 AS B ON A~BELNR = B~BELNR
+      WHERE GJAHR = GV_YEAR
+        AND BUDAT LIKE LV_YEARMM
+        AND SKANR = PV_NODE_KEY.
+
+      CASE LS_DOCUMENT_ITEM-SHKZG.
+        WHEN 'S'.
+          ADD LS_DOCUMENT_ITEM-WRBTR TO GS_DATA-DEBIT.
+        WHEN 'H'.
+          ADD LS_DOCUMENT_ITEM-WRBTR TO GS_DATA-CREDIT.
+      ENDCASE.
+
+    ENDSELECT.
+
+    CASE PV_NODE_KEY+0(1). " 자산, 부채, 자본, 수익, 비용 종류 추출
+      WHEN 1 OR 5. " 자산, 비용 : 차변 +
+        GS_DATA-BALANCE = GS_DATA-DEBIT - GS_DATA-CREDIT.
+      WHEN 2 OR 3 OR 4." 부채, 자본, 수익 : 대변 +
+        GS_DATA-BALANCE = GS_DATA-CREDIT - GS_DATA-DEBIT.
+    ENDCASE.
+
+    ADD GS_DATA-BALANCE TO LV_BALANCE_SUM.
+
+    APPEND GS_DATA TO GT_DATA.
+
+*   차트
+    CATEGORY = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'Category' PARENT = CATEGORIES ).
+    CATEGORY->IF_IXML_NODE~SET_VALUE( GS_DATA-MON_TXT ).
+
+*   차변
+    DEBIT_STRING = GS_DATA-DEBIT * 100.
+    POINT = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'Point' PARENT = SERIES_DEBIT ).
+    VALUE = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'Value' PARENT = POINT ).
+    VALUE->SET_ATTRIBUTE( NAME = 'type' VALUE = 'y' ).
+    VALUE->IF_IXML_NODE~SET_VALUE( DEBIT_STRING ).
+
+*   대변
+    CREDIT_STRING = GS_DATA-CREDIT * 100.
+    POINT = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'Point' PARENT = SERIES_CREDIT ).
+    VALUE = GO_IXML_DATA_DOC->CREATE_SIMPLE_ELEMENT( NAME = 'Value' PARENT = POINT ).
+    VALUE->SET_ATTRIBUTE( NAME = 'type' VALUE = 'y' ).
+    VALUE->IF_IXML_NODE~SET_VALUE( CREDIT_STRING ).
+
+  ENDDO.
+
+  CLEAR GS_DATA.
+  GS_DATA-MON = 13.
+  GS_DATA-MON_TXT = '차기이월'.
+  GS_DATA-CARRYOVER = LV_CARRYFORWARD + LV_BALANCE_SUM.
+  GS_DATA-BALANCE = GS_DATA-CARRYOVER.
+  GS_DATA-WAERS = 'KRW'.
+  APPEND GS_DATA TO GT_DATA.
+
+* 차트
+  GO_OSTREAM = GO_IXML_SF->CREATE_OSTREAM_XSTRING( XDATA ).
+  GO_IXML_DATA_DOC->RENDER( GO_OSTREAM ).
+  GO_CHART->SET_DATA( XDATA = XDATA ).
+  GO_CHART->RENDER( ).
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DETAIL_SELECTED_BALANCE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> LCL_NODE_EVENT_HANDLER=>GV_NOD
+*&      --> P_
+*&---------------------------------------------------------------------*
+FORM DETAIL_SELECTED_BALANCE USING VALUE(PV_NODE_KEY)
+                                   VALUE(PV_SHKZG)
+                                   VALUE(PV_ROW).
+
+  DATA: LV_YEARMM    TYPE STRING,
+        LV_SHKZG_TXT TYPE STRING,
+        LV_GLTXT     TYPE STRING.
+  CLEAR GT_HISTORY.
+
+  READ TABLE GT_DATA INTO GS_DATA INDEX PV_ROW.
+
+* 이월, 차기이월 핫스팍 클릭시 MONTH는 비워져있다.
+  IF GS_DATA-MON IS INITIAL.
+    RETURN.
+  ENDIF.
+
+  CONCATENATE GV_YEAR GS_DATA-MON '%' INTO LV_YEARMM.
+
+  SELECT A~BELNR A~BLART A~BUDAT B~SKANR B~BUZEI B~WRBTR B~WAERS B~SHKZG C~GLTXT
+    INTO CORRESPONDING FIELDS OF GS_HISTORY
+    FROM ZTFC_FIT020 AS A
+    INNER JOIN ZTFC_FIT030 AS B ON A~BELNR = B~BELNR
+    INNER JOIN ZTFC_FIT010 AS C ON B~SKANR = C~SKANR
+    WHERE A~GJAHR = GV_YEAR " 회계연도
+      AND A~BUDAT LIKE LV_YEARMM " 전기일 YYYYMM
+      AND B~SKANR = PV_NODE_KEY " 계정과목코드
+      AND B~SHKZG = PV_SHKZG. " 차대변
+
+    CASE GS_HISTORY-SHKZG.
+      WHEN 'S'.
+        CLEAR GS_HISTORY-CREDIT.
+        GS_HISTORY-DEBIT = GS_HISTORY-WRBTR.
+      WHEN 'H'.
+        CLEAR GS_HISTORY-DEBIT.
+        GS_HISTORY-CREDIT = GS_HISTORY-WRBTR.
+    ENDCASE.
+
+    APPEND GS_HISTORY TO GT_HISTORY.
+  ENDSELECT.
+
+  IF LINES( GT_HISTORY ) = 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+* History ALV TItle 설정
+  SELECT SINGLE GLTXT
+    INTO LV_GLTXT
+    FROM ZTFC_FIT010
+    WHERE SKANR = PV_NODE_KEY.
+
+  CASE PV_SHKZG.
+    WHEN 'S'.
+      LV_SHKZG_TXT = '차변'.
+    WHEN 'H'.
+      LV_SHKZG_TXT = '대변'.
+  ENDCASE.
+
+  GS_HISTORY_LAYOUT-GRID_TITLE = |[ { GS_DATA-MON_TXT } { LV_GLTXT } { LV_SHKZG_TXT } ]|.
+  CALL METHOD GO_HISTORY_ALV_GRID->SET_FRONTEND_LAYOUT
+    EXPORTING
+      IS_LAYOUT = GS_HISTORY_LAYOUT.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_HISTORY_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_HISTORY_FCAT .
+  DATA: LS_HISTORY_FCAT TYPE LVC_S_FCAT.
+
+  LS_HISTORY_FCAT-FIELDNAME = 'BELNR'.
+  LS_HISTORY_FCAT-COLTEXT = '전표번호'.
+  LS_HISTORY_FCAT-HOTSPOT = 'X'.
+  LS_HISTORY_FCAT-KEY = 'X'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'BUZEI'.
+  LS_HISTORY_FCAT-COLTEXT = '전표 아이템 번호'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'BUDAT'.
+  LS_HISTORY_FCAT-COLTEXT = '전기일자'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+  LS_HISTORY_FCAT-FIELDNAME = 'BLART'.
+  LS_HISTORY_FCAT-COLTEXT = '전표 유형'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'SKANR'.
+  LS_HISTORY_FCAT-COLTEXT = '계정과목코드'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'GLTXT'.
+  LS_HISTORY_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'DEBIT'.
+  LS_HISTORY_FCAT-CFIELDNAME = 'WAERS'.
+  LS_HISTORY_FCAT-COLTEXT = '차변 금액'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'CREDIT'.
+  LS_HISTORY_FCAT-CFIELDNAME = 'WAERS'.
+  LS_HISTORY_FCAT-COLTEXT = '대변 금액'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'WAERS'.
+  LS_HISTORY_FCAT-COLTEXT = '통화'.
+  APPEND LS_HISTORY_FCAT TO GT_HISTORY_FCAT.
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_HISTORY_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_HISTORY_LAYOUT .
+  GS_HISTORY_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_HISTORY_LAYOUT-NO_TOOLBAR = 'X'.
+  GS_HISTORY_LAYOUT-ZEBRA = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form EXPAND_TREE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM EXPAND_TREE .
+
+  CALL METHOD GO_ALV_TREE->EXPAND_ROOT_NODES
+    EXPORTING
+      EXPAND_SUBTREE      = 'X'
+    EXCEPTIONS
+      FAILED              = 1
+      ILLEGAL_LEVEL_COUNT = 2
+      CNTL_SYSTEM_ERROR   = 3
+      OTHERS              = 4.
+  IF SY-SUBRC <> 0.
+*   Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form COLLAPSE_TREE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM COLLAPSE_TREE .
+
+  CALL METHOD GO_ALV_TREE->COLLAPSE_ALL_NODES
+    EXCEPTIONS
+      FAILED            = 1
+      CNTL_SYSTEM_ERROR = 2
+      OTHERS            = 3.
+  IF SY-SUBRC <> 0.
+*   Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form RESET_BALANCE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM RESET_BALANCE .
+
+  CLEAR GT_DATA.
+  CLEAR GT_HISTORY.
+
+  IF GO_CHART_CONTAINER IS NOT INITIAL.
+    CALL METHOD GO_CHART_CONTAINER->SET_VISIBLE( EXPORTING VISIBLE = ABAP_FALSE ).
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DETAIL_SELECTED_BELNR
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> ES_ROW_NO_ROW_ID
+*&---------------------------------------------------------------------*
+FORM DETAIL_SELECTED_BELNR USING PV_ROW_ID.
+
+  READ TABLE GT_HISTORY INTO GS_HISTORY INDEX PV_ROW_ID.
+
+  CALL SCREEN 110
+    STARTING AT 5 5.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_DOC_ITEM_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_DOC_ITEM_FCAT .
+  DATA: LS_DOC_ITEM_FCAT TYPE LVC_S_FCAT.
+
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'BUZEI'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '아이템 번호'.
+  LS_DOC_ITEM_FCAT-KEY = 'X'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'BSCHL'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '전기키'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'SKANR'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '계정과목코드'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'GLTXT'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'DEBIT'.
+  LS_DOC_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '차변 금액'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'CREDIT'.
+  LS_DOC_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '대변 금액'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'WAERS'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '통화'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'LIFNR'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '공급업체코드'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'CLITNM'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '공급업체명'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'KUNNR'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '고객코드'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'CUSTNAME'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '고객명'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+  CLEAR LS_DOC_ITEM_FCAT.
+  LS_DOC_ITEM_FCAT-FIELDNAME = 'SGTXT'.
+  LS_DOC_ITEM_FCAT-COLTEXT = '적요'.
+  APPEND LS_DOC_ITEM_FCAT TO GT_DOC_ITEM_FCAT.
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_DOC_ITEM_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_DOC_ITEM_LAYOUT .
+  GS_DOC_ITEM_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_DOC_ITEM_LAYOUT-ZEBRA = 'X'.
+ENDFORM.
