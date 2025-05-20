@@ -1,0 +1,689 @@
+*&---------------------------------------------------------------------*
+*& Include          MZFCFI0030O01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0100 OUTPUT.
+  SET PF-STATUS 'S100'.
+  SET TITLEBAR 'T100'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_OPEN_ITEM_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_OPEN_ITEM_ALV OUTPUT.
+
+  IF GO_OPEN_ITEM_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_OPEN_ITEM_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'OPEN_ITEM_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_OPEN_ITEM_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_OPEN_ITEM_CONTAINER
+        I_APPL_EVENTS     = 'X'
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_OPEN_ITEM_FCAT.
+    PERFORM SET_OPEN_ITEM_LAYOUT.
+
+    SET HANDLER:
+      LCL_OPEN_ITEM_EVENT_HANDLER=>ON_TOOLBAR FOR GO_OPEN_ITEM_ALV_GRID,
+      LCL_OPEN_ITEM_EVENT_HANDLER=>ON_USER_COMMAND FOR GO_OPEN_ITEM_ALV_GRID,
+      LCL_OPEN_ITEM_EVENT_HANDLER=>ON_HOTSPOT_CLICK FOR GO_OPEN_ITEM_ALV_GRID.
+
+    CALL METHOD GO_OPEN_ITEM_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_OPEN_ITEM_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_OPEN_ITEM
+        IT_FIELDCATALOG               = GT_OPEN_ITEM_FCAT
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ELSE.
+
+    CALL METHOD GO_OPEN_ITEM_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_OPEN_ITEM_HISTORY_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_OPEN_ITEM_HISTORY_ALV OUTPUT.
+
+  IF GO_OPEN_ITEM_HISTORY_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_OPEN_ITEM_HISTORY_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'HISTORY_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*   MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*              WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_OPEN_ITEM_HISTORY_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_OPEN_ITEM_HISTORY_CONTAINER
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*   MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*              WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_HISTORY_FCAT.
+    PERFORM SET_HISTORY_LAYOUT.
+
+    SET HANDLER:
+      LCL_ITEM_EVENT_HANDLER=>ON_HOTSPOT_CLICK FOR GO_OPEN_ITEM_HISTORY_ALV_GRID.
+
+    CALL METHOD GO_OPEN_ITEM_HISTORY_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_OPEN_ITEM_HISTORY_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_OPEN_ITEM_HISTORY
+        IT_FIELDCATALOG               = GT_OPEN_ITEM_HISTORY_FCAT
+*       IT_SORT                       =
+*       IT_FILTER                     =
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ELSE.
+
+    PERFORM INIT_HISTORY_ALV_GRID_TITLE.
+
+    CALL METHOD GO_OPEN_ITEM_HISTORY_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0110 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0110 OUTPUT.
+  SET PF-STATUS 'S110'.
+  SET TITLEBAR 'T110' WITH GS_OPEN_ITEM-BELNR.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_CLEARING_SUB OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_CLEARING_SUB OUTPUT.
+  CASE 'X'.
+    WHEN ZSFC_FI_0160-CASH_RBT.
+      GV_DYNNR = '0120'.
+    WHEN ZSFC_FI_0160-DEPOSIT_RBT.
+      GV_DYNNR = '0130'.
+    WHEN OTHERS.
+      GV_DYNNR = '0120'.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_CLEARING_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_CLEARING_INFO OUTPUT.
+
+  DATA: LV_VENDER TYPE ZTFC_MMT020.
+
+  SELECT SINGLE *
+    INTO CORRESPONDING FIELDS OF ZSFC_FI_0160
+    FROM ZTFC_MMT020
+    WHERE LIFNR = GS_OPEN_ITEM-LIFNR.
+
+  ZSFC_FI_0160-BELNR = GS_OPEN_ITEM-BELNR.
+  ZSFC_FI_0160-BALANCE = GS_OPEN_ITEM-BALANCE.
+  ZSFC_FI_0160-WAERS = GS_OPEN_ITEM-WAERS.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0140 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0140 OUTPUT.
+  SET PF-STATUS 'S140'.
+  SET TITLEBAR 'T140' WITH GS_OPEN_ITEM-BELNR.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_DOCUMENT_HEADER_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_DOCUMENT_HEADER_INFO OUTPUT.
+
+  CLEAR ZSFC_FI_0100.
+  MOVE-CORRESPONDING GS_OPEN_ITEM TO ZSFC_FI_0100.
+
+  CALL FUNCTION 'RKE_DOMVALUE_TEXT_GET'
+    EXPORTING
+      I_DOMA             = 'ZDFC_BLART'
+      I_DOMVALUE         = ZSFC_FI_0100-BLART
+      I_LANGU            = SY-LANGU
+    IMPORTING
+      E_DDTEXT           = ZSFC_FI_0100-BLART_TXT
+    EXCEPTIONS
+      DOMNAME_NOT_FOUND  = 1
+      DOMVALUE_NOT_FOUND = 2
+      OTHERS             = 3.
+  IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_ITEM_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_ITEM_ALV OUTPUT.
+
+  IF GO_ITEM_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_ITEM_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'ITEM_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_ITEM_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_ITEM_CONTAINER
+*       I_APPL_EVENTS     = SPACE
+*       I_PARENTDBG       =
+*       I_APPLOGPARENT    =
+*       I_GRAPHICSPARENT  =
+*       I_NAME            =
+*       I_FCAT_COMPLETE   = SPACE
+*       O_PREVIOUS_SRAL_HANDLER =
+*       I_USE_ONE_UX_APPEARANCE = ABAP_FALSE
+*       O_COMMON_HUB      =
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_ITEM_FCAT.
+    PERFORM SET_ITEM_LAYOUT.
+
+    CALL METHOD GO_ITEM_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_ITEM_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_ITEM_DATA
+        IT_FIELDCATALOG               = GT_ITEM_FCAT
+*       IT_SORT                       =
+*       IT_FILTER                     =
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+
+  ELSE.
+
+    CALL METHOD GO_ITEM_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_ITEM_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_ITEM_INFO OUTPUT.
+
+  SELECT A~BELNR A~BUZEI A~LIFNR A~KUNNR A~SKANR A~BSCHL A~KOART A~WRBTR A~WAERS
+         A~SHKZG A~SGTXT
+         B~GLTXT
+         C~CLITNM
+    INTO CORRESPONDING FIELDS OF TABLE GT_ITEM_DATA
+    FROM ZTFC_FIT030 AS A
+    INNER JOIN ZTFC_FIT010 AS B ON A~SKANR = B~SKANR
+    LEFT OUTER JOIN ZTFC_MMT020 AS C ON A~LIFNR = C~LIFNR
+    WHERE BELNR = GS_OPEN_ITEM-BELNR.
+
+  LOOP AT GT_ITEM_DATA INTO GS_ITEM_DATA.
+
+    CASE GS_ITEM_DATA-SHKZG.
+      WHEN 'S'.
+        GS_ITEM_DATA-DEBIT = GS_ITEM_DATA-WRBTR.
+      WHEN 'H'.
+        GS_ITEM_DATA-CREDIT = GS_ITEM_DATA-WRBTR.
+    ENDCASE.
+
+    MODIFY GT_ITEM_DATA FROM GS_ITEM_DATA.
+  ENDLOOP.
+
+  SORT GT_ITEM_DATA BY BUZEI ASCENDING.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0150 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0150 OUTPUT.
+  SET PF-STATUS 'S150'.
+  SET TITLEBAR 'T150'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_VENDER_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_VENDER_INFO OUTPUT.
+  SELECT SINGLE *
+    INTO CORRESPONDING FIELDS OF ZTFC_MMT020
+    FROM ZTFC_MMT020
+    WHERE LIFNR = GS_OPEN_ITEM-LIFNR.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0160 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0160 OUTPUT.
+  SET PF-STATUS 'S160'.
+  SET TITLEBAR 'T160' WITH GS_OPEN_ITEM_HISTORY-BELNR.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_CLEARING_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_CLEARING_ALV OUTPUT.
+
+  IF GO_CLEARING_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_CLEARING_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'CLEARING_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_CLEARING_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_CLEARING_CONTAINER
+*       I_APPL_EVENTS     = SPACE
+*       I_PARENTDBG       =
+*       I_APPLOGPARENT    =
+*       I_GRAPHICSPARENT  =
+*       I_NAME            =
+*       I_FCAT_COMPLETE   = SPACE
+*       O_PREVIOUS_SRAL_HANDLER =
+*       I_USE_ONE_UX_APPEARANCE = ABAP_FALSE
+*       O_COMMON_HUB      =
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_CLEARING_ITEM_FCAT.
+    PERFORM SET_CLEARING_ITEM_LAYOUT.
+
+    CALL METHOD GO_CLEARING_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+*       I_BUFFER_ACTIVE               =
+*       I_BYPASSING_BUFFER            =
+*       I_CONSISTENCY_CHECK           =
+*       I_STRUCTURE_NAME              =
+*       IS_VARIANT                    =
+*       I_SAVE                        =
+*       I_DEFAULT                     = 'X'
+        IS_LAYOUT                     = GS_CLEARING_ITEM_LAYOUT
+*       IS_PRINT                      =
+*       IT_SPECIAL_GROUPS             =
+*       IT_TOOLBAR_EXCLUDING          =
+*       IT_HYPERLINK                  =
+*       IT_ALV_GRAPHICS               =
+*       IT_EXCEPT_QINFO               =
+*       IR_SALV_ADAPTER               =
+      CHANGING
+        IT_OUTTAB                     = GT_CLEARING_ITEM_DATA
+        IT_FIELDCATALOG               = GT_CLEARING_ITEM_FCAT
+*       IT_SORT                       =
+*       IT_FILTER                     =
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+
+  ELSE.
+
+    CALL METHOD GO_CLEARING_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_CLEARING_HEADER_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_CLEARING_HEADER_INFO OUTPUT.
+
+  CLEAR ZSFC_FI_0100.
+  SELECT SINGLE *
+    INTO CORRESPONDING FIELDS OF ZSFC_FI_0100
+    FROM ZTFC_FIT020 AS A
+    LEFT OUTER JOIN ZTFC_SDT040 AS B ON A~PERNR = B~PERNR
+    WHERE BELNR = GS_OPEN_ITEM_HISTORY-BELNR.
+
+  CALL FUNCTION 'RKE_DOMVALUE_TEXT_GET'
+    EXPORTING
+      I_DOMA             = 'ZDFC_BLART'
+      I_DOMVALUE         = ZSFC_FI_0100-BLART
+      I_LANGU            = SY-LANGU
+    IMPORTING
+      E_DDTEXT           = ZSFC_FI_0100-BLART_TXT
+    EXCEPTIONS
+      DOMNAME_NOT_FOUND  = 1
+      DOMVALUE_NOT_FOUND = 2
+      OTHERS             = 3.
+  IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_CLEARING_ITEM_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_CLEARING_ITEM_INFO OUTPUT.
+
+  SELECT A~BELNR A~BUZEI A~LIFNR A~KUNNR A~SKANR A~BSCHL A~KOART A~WRBTR A~WAERS
+         A~SHKZG A~SGTXT
+         B~GLTXT
+         C~CLITNM
+    INTO CORRESPONDING FIELDS OF TABLE GT_CLEARING_ITEM_DATA
+    FROM ZTFC_FIT030 AS A
+    INNER JOIN ZTFC_FIT010 AS B ON A~SKANR = B~SKANR
+    LEFT OUTER JOIN ZTFC_MMT020 AS C ON A~LIFNR = C~LIFNR
+    WHERE BELNR = GS_OPEN_ITEM_HISTORY-BELNR.
+
+  LOOP AT GT_CLEARING_ITEM_DATA INTO GS_CLEARING_ITEM_DATA.
+
+    CASE GS_CLEARING_ITEM_DATA-SHKZG.
+      WHEN 'S'.
+        GS_CLEARING_ITEM_DATA-DEBIT = GS_CLEARING_ITEM_DATA-WRBTR.
+      WHEN 'H'.
+        GS_CLEARING_ITEM_DATA-CREDIT = GS_CLEARING_ITEM_DATA-WRBTR.
+    ENDCASE.
+
+    MODIFY GT_CLEARING_ITEM_DATA FROM GS_CLEARING_ITEM_DATA.
+  ENDLOOP.
+
+  SORT GT_CLEARING_ITEM_DATA BY BUZEI ASCENDING.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0170 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0170 OUTPUT.
+  SET PF-STATUS 'S170'.
+  SET TITLEBAR 'T170'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_INVOICE_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_INVOICE_INFO OUTPUT.
+
+
+* 송장 헤더
+  SELECT SINGLE *
+    INTO CORRESPONDING FIELDS OF ZSFC_MM_0060
+    FROM ZTFC_FIT070
+    WHERE INVNR = GS_OPEN_ITEM-INVNR.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE S160(ZFC_DUMPTRUCK).
+    LEAVE TO SCREEN 0.
+  ENDIF.
+
+  CALL FUNCTION 'RKE_DOMVALUE_TEXT_GET'
+    EXPORTING
+      I_DOMA             = 'ZDFC_ZLSCH'
+      I_DOMVALUE         = ZSFC_MM_0060-ZLSCH
+      I_LANGU            = SY-LANGU
+    IMPORTING
+      E_DDTEXT           = ZSFC_MM_0060-ZLSCH_TXT
+    EXCEPTIONS
+      DOMNAME_NOT_FOUND  = 1
+      DOMVALUE_NOT_FOUND = 2
+      OTHERS             = 3.
+  IF SY-SUBRC <> 0.
+    MESSAGE 'DOMVALUE ERROR' TYPE 'S' DISPLAY LIKE 'W'.
+  ENDIF.
+
+* 송장 아이템
+  SELECT *
+    INTO CORRESPONDING FIELDS OF TABLE GT_INVOICE_ITEM_DATA
+    FROM ZTFC_FIT080
+    WHERE INVNR = GS_OPEN_ITEM-INVNR.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_INVOICE_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_INVOICE_ALV OUTPUT.
+
+  IF GO_INVOICE_ITEM_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_INVOICE_ITEM_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'INVOICE_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_INVOICE_ITEM_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_INVOICE_ITEM_CONTAINER
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_INVOICE_ITEM_FCAT.
+    PERFORM SET_INVOICE_ITEM_LAYOUT.
+
+    CALL METHOD GO_INVOICE_ITEM_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_INVOICE_ITEM_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_INVOICE_ITEM_DATA
+        IT_FIELDCATALOG               = GT_INVOICE_ITEM_FCAT
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+  ELSE.
+    CALL METHOD GO_INVOICE_ITEM_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+  ENDIF.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0180 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0180 OUTPUT.
+  SET PF-STATUS 'S180'.
+  SET TITLEBAR 'T180'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_EMPLOYEE_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_EMPLOYEE_INFO OUTPUT.
+
+  CLEAR ZSFC_FI_0060.
+
+* 사원 테이블
+  SELECT SINGLE A~BUKRS, A~PERNR, A~PERNAME, A~TELF2, A~ORGEH, A~PERLEV, A~PEREMA,
+                B~BUTXT, C~STRG, C~TELF3
+    INTO CORRESPONDING FIELDS OF @ZSFC_FI_0060
+    FROM ZTFC_SDT040 AS A
+    INNER JOIN ZTFC_SDT030 AS B ON A~BUKRS = B~BUKRS
+    LEFT OUTER JOIN ZTFC_SDT050 AS C ON B~BUKRS = C~BUKRS AND A~ORGEH = C~ORGEH
+    WHERE PERNR = @GS_OPEN_ITEM_HISTORY-PERNR.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE S121(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    LEAVE TO SCREEN 0.
+  ENDIF.
+ENDMODULE.
