@@ -1,0 +1,302 @@
+*&---------------------------------------------------------------------*
+*& Include          ZFCRFI0050F01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Form SET_INOUT_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_INOUT_FCAT .
+
+  DATA: LS_INOUT_FCAT TYPE LVC_S_FCAT.
+
+  CLEAR LS_INOUT_FCAT.
+  LS_INOUT_FCAT-FIELDNAME = 'BLDAT'.
+  LS_INOUT_FCAT-COLTEXT = '일자'.
+  LS_INOUT_FCAT-KEY = 'X'.
+  APPEND LS_INOUT_FCAT TO GT_INOUT_FCAT.
+
+  CLEAR LS_INOUT_FCAT.
+  LS_INOUT_FCAT-FIELDNAME = 'INOUT_TXT'.
+  LS_INOUT_FCAT-COLTEXT = '입출금 구분'.
+  APPEND LS_INOUT_FCAT TO GT_INOUT_FCAT.
+
+  CLEAR LS_INOUT_FCAT.
+  LS_INOUT_FCAT-FIELDNAME = 'CUSTNAME'.
+  LS_INOUT_FCAT-COLTEXT = '고객명'.
+  APPEND LS_INOUT_FCAT TO GT_INOUT_FCAT.
+
+  CLEAR LS_INOUT_FCAT.
+  LS_INOUT_FCAT-FIELDNAME = 'CLITNM'.
+  LS_INOUT_FCAT-COLTEXT = '공급업체명'.
+  APPEND LS_INOUT_FCAT TO GT_INOUT_FCAT.
+
+  CLEAR LS_INOUT_FCAT.
+  LS_INOUT_FCAT-FIELDNAME = 'WRBTR'.
+  LS_INOUT_FCAT-CFIELDNAME = 'WAERS'.
+  LS_INOUT_FCAT-COLTEXT = '금액'.
+  APPEND LS_INOUT_FCAT TO GT_INOUT_FCAT.
+
+  CLEAR LS_INOUT_FCAT.
+  LS_INOUT_FCAT-FIELDNAME = 'WAERS'.
+  LS_INOUT_FCAT-COLTEXT = '통화'.
+  APPEND LS_INOUT_FCAT TO GT_INOUT_FCAT.
+
+  CLEAR LS_INOUT_FCAT.
+  LS_INOUT_FCAT-FIELDNAME = 'BKTXT'.
+  LS_INOUT_FCAT-COLTEXT = '비고'.
+  APPEND LS_INOUT_FCAT TO GT_INOUT_FCAT.
+
+
+  CLEAR LS_INOUT_FCAT.
+  LS_INOUT_FCAT-FIELDNAME = 'BELNR'.
+  LS_INOUT_FCAT-COLTEXT = '참조 전표 번호'.
+  LS_INOUT_FCAT-HOTSPOT = 'X'.
+  APPEND LS_INOUT_FCAT TO GT_INOUT_FCAT.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_INOUT_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_INOUT_LAYOUT .
+  GS_INOUT_LAYOUT-GRID_TITLE = '입출금 내역'.
+  GS_INOUT_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_INOUT_LAYOUT-ZEBRA = 'X'.
+  GS_INOUT_LAYOUT-NO_TOOLBAR = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SEARCH_ALL_INOUT_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SEARCH_ALL_INOUT_DATA .
+
+  DATA: RT_BLDAT TYPE RANGE OF ZTFC_FIT020-BLDAT, " 기간(증빙일자)
+        RS_BLDAT LIKE LINE OF RT_BLDAT,
+        RT_SHKZG TYPE RANGE OF ZTFC_FIT030-SHKZG, " 차대변 구분
+        RS_SHKZG LIKE LINE OF RT_SHKZG.
+
+  DATA: LV_BEGIN_DAT TYPE ZTFC_FIT020-BLDAT,
+        LV_END_DAT   TYPE ZTFC_FIT020-BLDAT.
+
+  LV_BEGIN_DAT = ZSFC_FI_0220-BEGIN_DAT.
+  LV_END_DAT = ZSFC_FI_0220-END_DAT.
+
+* 기간(증빙일자)
+  IF LV_BEGIN_DAT IS NOT INITIAL AND LV_END_DAT IS INITIAL. "  = BEGIN
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION = 'EQ'.
+    RS_BLDAT-LOW = LV_BEGIN_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ELSEIF LV_BEGIN_DAT IS NOT INITIAL AND LV_END_DAT IS NOT INITIAL. " = BEGIN ~ END
+    IF LV_BEGIN_DAT > LV_END_DAT. " FROM TO 에서 FROM의 날짜가 더 크다면
+      MESSAGE S161(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION = 'BT'.
+    RS_BLDAT-LOW = LV_BEGIN_DAT.
+    RS_BLDAT-HIGH = LV_END_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ELSEIF LV_BEGIN_DAT IS INITIAL AND LV_END_DAT IS NOT INITIAL. " = ~ END
+    RS_BLDAT-SIGN = 'I'.
+    RS_BLDAT-OPTION ='LE'.
+    RS_BLDAT-LOW = LV_END_DAT.
+    APPEND RS_BLDAT TO RT_BLDAT.
+  ENDIF.
+
+* 입출력 구분
+  CASE ZSFC_FI_0220-INOUT_TYPE.
+    WHEN 'I'. " 입금 = 차변(자산 증가)
+      RS_SHKZG-SIGN = 'I'.
+      RS_SHKZG-OPTION = 'EQ'.
+      RS_SHKZG-LOW = 'S'.
+      APPEND RS_SHKZG TO RT_SHKZG.
+    WHEN 'O'. " 출금 = 대변(자산 감소)
+      RS_SHKZG-SIGN = 'I'.
+      RS_SHKZG-OPTION = 'EQ'.
+      RS_SHKZG-LOW = 'H'.
+      APPEND RS_SHKZG TO RT_SHKZG.
+  ENDCASE.
+
+  SELECT A~SHKZG A~WRBTR A~WAERS A~BLDAT A~BKTXT A~BELNR
+         B~CUSTNAME C~CLITNM
+    INTO CORRESPONDING FIELDS OF TABLE GT_INOUT
+    FROM ZVFCFI0010D AS A
+    LEFT JOIN ZTFC_SDT010 AS B ON A~KUNNR = B~KUNNR
+    LEFT JOIN ZTFC_MMT020 AS C ON A~LIFNR = C~LIFNR
+    WHERE A~SKANR = 1010000002 " 보통 예금
+      AND A~BKSTAT = 1         " 승인
+      AND A~BLDAT IN RT_BLDAT  " 증빙 일자
+      AND A~SHKZG IN RT_SHKZG. " 차대변구분(입출금)
+
+  IF LINES( GT_INOUT ) = 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+* 입출금 텍스트
+  LOOP AT GT_INOUT INTO GS_INOUT.
+    CASE GS_INOUT-SHKZG.
+      WHEN 'S'.
+        GS_INOUT-INOUT_TXT = '입금'.
+      WHEN 'H'.
+        GS_INOUT-INOUT_TXT = '출금'.
+    ENDCASE.
+    MODIFY GT_INOUT FROM GS_INOUT.
+  ENDLOOP.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_DOCUMENT_ITEM_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_DOCUMENT_ITEM_FCAT .
+
+  DATA: LS_ITEM_FCAT TYPE LVC_S_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'BUZEI'.
+  LS_ITEM_FCAT-COLTEXT = '아이템번호'.
+  LS_ITEM_FCAT-KEY = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_DOCUMENT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'BSCHL'.
+  LS_ITEM_FCAT-COLTEXT = '전기키'.
+  APPEND LS_ITEM_FCAT TO GT_DOCUMENT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SKANR'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목 코드'.
+  APPEND LS_ITEM_FCAT TO GT_DOCUMENT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'GLTXT'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_ITEM_FCAT TO GT_DOCUMENT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'DEBIT'.
+  LS_ITEM_FCAT-COLTEXT = '차변 금액'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_FCAT-REF_FIELD = 'WRBTR'.
+  LS_ITEM_FCAT-DO_SUM = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_DOCUMENT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CREDIT'.
+  LS_ITEM_FCAT-COLTEXT = '대변 금액'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-REF_TABLE = 'ZTFC_FIT030'.
+  LS_ITEM_FCAT-REF_FIELD = 'WRBTR'.
+  LS_ITEM_FCAT-DO_SUM = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_DOCUMENT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-COLTEXT = '통화'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  APPEND LS_ITEM_FCAT TO GT_DOCUMENT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SGTXT'.
+  LS_ITEM_FCAT-COLTEXT = '적요'.
+  APPEND LS_ITEM_FCAT TO GT_DOCUMENT_ITEM_FCAT.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_DOCUMENT_ITEM_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_DOCUMENT_ITEM_LAYOUT .
+  GS_DOCUMENT_ITEM_LAYOUT-GRID_TITLE = '참조 전표 아이템'.
+  GS_DOCUMENT_ITEM_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_DOCUMENT_ITEM_LAYOUT-NO_TOOLBAR = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DOCUMENT_ITEM_SELECTED_INOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM DOCUMENT_ITEM_SELECTED_INOUT .
+
+  SELECT A~BELNR A~BUZEI A~SKANR A~BSCHL A~WRBTR A~WAERS A~SGTXT A~SHKZG
+         B~GLTXT
+    INTO CORRESPONDING FIELDS OF TABLE GT_DOCUMENT_ITEM
+    FROM ZTFC_FIT030 AS A
+    LEFT OUTER JOIN ZTFC_FIT010 AS B ON A~SKANR = B~SKANR
+    WHERE BELNR = GS_INOUT-BELNR.
+
+  IF LINES( GT_DOCUMENT_ITEM ) = 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+  SORT GT_DOCUMENT_ITEM BY BUZEI.
+  LOOP AT GT_DOCUMENT_ITEM INTO GS_DOCUMENT_ITEM.
+
+* 차대변 금액 갱신
+    CASE GS_DOCUMENT_ITEM-SHKZG.
+      WHEN 'S'.
+        GS_DOCUMENT_ITEM-DEBIT = GS_DOCUMENT_ITEM-WRBTR.
+      WHEN 'H'.
+        GS_DOCUMENT_ITEM-CREDIT = GS_DOCUMENT_ITEM-WRBTR.
+    ENDCASE.
+
+    MODIFY GT_DOCUMENT_ITEM FROM GS_DOCUMENT_ITEM.
+  ENDLOOP.
+
+    GS_DOCUMENT_ITEM_LAYOUT-GRID_TITLE = |[{ GS_DOCUMENT_ITEM-BELNR }] 참조 전표 아이템|.
+    CALL METHOD GO_DOCUMENT_ITEM_ALV_GRID->SET_FRONTEND_LAYOUT
+      EXPORTING
+        IS_LAYOUT = GS_DOCUMENT_ITEM_LAYOUT.
+
+  CALL METHOD GO_DOCUMENT_ITEM_ALV_GRID->REFRESH_TABLE_DISPLAY
+    EXCEPTIONS
+      FINISHED = 1
+      OTHERS   = 2.
+  IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form RESET_INOUT_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM RESET_INOUT_DATA .
+  CLEAR: ZSFC_FI_0220, " 조회 조건
+         ZSFC_FI_0120, " 고객 정보
+         ZTFC_MMT020,  " 공급업체 정보
+         GT_INOUT,     " 입출금 내역
+         GT_DOCUMENT_ITEM. " 전표 아이템
+ENDFORM.
