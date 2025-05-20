@@ -1,0 +1,739 @@
+*&---------------------------------------------------------------------*
+*& Include          MZFCFI0030F01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Form SET_OPEN_ITEM_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_OPEN_ITEM_FCAT .
+  DATA: LS_OPEN_ITEM_FCAT TYPE LVC_S_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'LIGHT'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '반제 상태'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'BELNR'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '전표 번호'.
+  LS_OPEN_ITEM_FCAT-KEY = 'X'.
+  LS_OPEN_ITEM_FCAT-HOTSPOT = 'X'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'BUDAT'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '전기일자'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'BLDAT'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '증빙일자'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'LIFNR'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '공급업체 코드'.
+  LS_OPEN_ITEM_FCAT-HOTSPOT = 'X'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'CLITNM'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '공급업체명'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'CREAMOUNT'.
+  LS_OPEN_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '매입 채무 금액'.
+  LS_OPEN_ITEM_FCAT-DO_SUM = 'X'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'BALANCE'.
+  LS_OPEN_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '매입 채무 잔액'.
+  LS_OPEN_ITEM_FCAT-DO_SUM = 'X'.
+  LS_OPEN_ITEM_FCAT-EMPHASIZE = 'C310'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'WAERS'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '통화'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'AUGDT'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '반제일'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'PAYDUE'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '지급기한'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'INVNR'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '송장번호'.
+  LS_OPEN_ITEM_FCAT-HOTSPOT = 'X'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+  CLEAR LS_OPEN_ITEM_FCAT.
+  LS_OPEN_ITEM_FCAT-FIELDNAME = 'BKTXT'.
+  LS_OPEN_ITEM_FCAT-COLTEXT = '적요'.
+  APPEND LS_OPEN_ITEM_FCAT TO GT_OPEN_ITEM_FCAT.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_OPEN_ITEM_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_OPEN_ITEM_LAYOUT .
+  GS_OPEN_ITEM_LAYOUT-GRID_TITLE = '전표 목록'.
+  GS_OPEN_ITEM_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_OPEN_ITEM_LAYOUT-EXCP_FNAME = 'LIGHT'.
+  GS_OPEN_ITEM_LAYOUT-EXCP_LED = 'X'.
+  GS_OPEN_ITEM_LAYOUT-ZEBRA = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form HISTORY_SELECTED_OPEN_ITEM
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM HISTORY_SELECTED_OPEN_ITEM .
+
+  DATA: LT_ROWS TYPE LVC_T_ROID,
+        LS_ROWS LIKE LINE OF LT_ROWS.
+
+  CALL METHOD GO_OPEN_ITEM_ALV_GRID->GET_SELECTED_ROWS
+    IMPORTING
+      ET_ROW_NO = LT_ROWS.
+
+  IF LINES( LT_ROWS ) <> 1.
+    MESSAGE S102(ZFC_DUMPTRUCK) WITH 1 DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
+* 선택한 미결 항목
+  READ TABLE LT_ROWS INTO LS_ROWS INDEX 1.
+
+* DO_SUM Line 클릭
+  IF LS_ROWS-ROW_ID = 0.
+    MESSAGE S102(ZFC_DUMPTRUCK) WITH 1 DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
+  READ TABLE GT_OPEN_ITEM INTO GS_OPEN_ITEM INDEX LS_ROWS-ROW_ID.
+
+* 선택한 미결 항목의 반제 전표 조회
+  SELECT *
+    INTO CORRESPONDING FIELDS OF TABLE GT_OPEN_ITEM_HISTORY
+    FROM ZVFCFI0010D
+    WHERE AUGBL = GS_OPEN_ITEM-BELNR. " 반제 전표 번호가 미결 항목의 전표 번호인 것
+
+  IF LINES( GT_OPEN_ITEM_HISTORY ) = 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+* 지급 방식 텍스트
+  LOOP AT GT_OPEN_ITEM_HISTORY INTO GS_OPEN_ITEM_HISTORY.
+
+    SELECT SINGLE B~GLTXT
+      INTO GS_OPEN_ITEM_HISTORY-PAYTXT
+      FROM ZTFC_FIT030 AS A
+      INNER JOIN ZTFC_FIT010 AS B ON A~SKANR = B~SKANR
+      WHERE A~BELNR = GS_OPEN_ITEM_HISTORY-BELNR
+        AND A~SKANR LIKE '101%' " 자산
+        AND A~BSCHL = 50. " 감소
+
+    MODIFY GT_OPEN_ITEM_HISTORY FROM GS_OPEN_ITEM_HISTORY.
+  ENDLOOP.
+
+  SORT GT_OPEN_ITEM_HISTORY BY BELNR ASCENDING.
+
+  GS_OPEN_ITEM_HISTORY_LAYOUT-GRID_TITLE =  |[{ GS_OPEN_ITEM-BELNR }] 반제 이력|.
+  CALL METHOD GO_OPEN_ITEM_HISTORY_ALV_GRID->SET_FRONTEND_LAYOUT
+    EXPORTING
+      IS_LAYOUT = GS_OPEN_ITEM_HISTORY_LAYOUT.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_HISTORY_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_HISTORY_FCAT .
+  DATA: LS_HISTORY_FCAT TYPE LVC_S_FCAT.
+
+  LS_HISTORY_FCAT-FIELDNAME = 'BELNR'.
+  LS_HISTORY_FCAT-COLTEXT = '전표 번호'.
+  LS_HISTORY_FCAT-KEY = 'X'.
+  LS_HISTORY_FCAT-HOTSPOT = 'X'.
+  APPEND LS_HISTORY_FCAT TO GT_OPEN_ITEM_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'BLART'.
+  LS_HISTORY_FCAT-COLTEXT = '전표 유형'.
+  APPEND LS_HISTORY_FCAT TO GT_OPEN_ITEM_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'PAYTXT'.
+  LS_HISTORY_FCAT-COLTEXT = '지급 방식'.
+  APPEND LS_HISTORY_FCAT TO GT_OPEN_ITEM_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'BLDAT'.
+  LS_HISTORY_FCAT-COLTEXT = '지급 일자'.
+  APPEND LS_HISTORY_FCAT TO GT_OPEN_ITEM_HISTORY_FCAT.
+
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'WRBTR'.
+  LS_HISTORY_FCAT-CFIELDNAME = 'WAERS'.
+  LS_HISTORY_FCAT-COLTEXT = '금액'.
+  LS_HISTORY_FCAT-DO_SUM = 'X'.
+  APPEND LS_HISTORY_FCAT TO GT_OPEN_ITEM_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'WAERS'.
+  LS_HISTORY_FCAT-COLTEXT = '통화'.
+  APPEND LS_HISTORY_FCAT TO GT_OPEN_ITEM_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'BKTXT'.
+  LS_HISTORY_FCAT-COLTEXT = '적요'.
+  APPEND LS_HISTORY_FCAT TO GT_OPEN_ITEM_HISTORY_FCAT.
+
+  CLEAR LS_HISTORY_FCAT.
+  LS_HISTORY_FCAT-FIELDNAME = 'PERNAME'.
+  LS_HISTORY_FCAT-COLTEXT = '담당자명'.
+  LS_HISTORY_FCAT-HOTSPOT = 'X'.
+  APPEND LS_HISTORY_FCAT TO GT_OPEN_ITEM_HISTORY_FCAT.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_HISTORY_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_HISTORY_LAYOUT .
+  GS_OPEN_ITEM_HISTORY_LAYOUT-GRID_TITLE = '반제 이력'.
+  GS_OPEN_ITEM_HISTORY_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_OPEN_ITEM_HISTORY_LAYOUT-NO_TOOLBAR = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_HISTORY_ALV_GRID_TITLE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_HISTORY_ALV_GRID_TITLE .
+
+  IF LINES( GT_OPEN_ITEM_HISTORY ) = 0.
+    GS_OPEN_ITEM_HISTORY_LAYOUT-GRID_TITLE = '반제 이력'.
+    CALL METHOD GO_OPEN_ITEM_HISTORY_ALV_GRID->SET_FRONTEND_LAYOUT
+      EXPORTING
+        IS_LAYOUT = GS_OPEN_ITEM_HISTORY_LAYOUT.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form CLEARING_SELECTED_OPEN_ITEM
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM CLEARING_SELECTED_OPEN_ITEM .
+
+  DATA: LT_ROWS TYPE LVC_T_ROID,
+        LS_ROWS LIKE LINE OF LT_ROWS.
+
+  CLEAR ZSFC_FI_0160.
+
+  CALL METHOD GO_OPEN_ITEM_ALV_GRID->GET_SELECTED_ROWS
+    IMPORTING
+      ET_ROW_NO = LT_ROWS.
+
+  IF LINES( LT_ROWS ) <> 1.
+    MESSAGE S102(ZFC_DUMPTRUCK) WITH 1 DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
+* 선택한 미결 항목
+  READ TABLE LT_ROWS INTO LS_ROWS INDEX 1.
+  READ TABLE GT_OPEN_ITEM INTO GS_OPEN_ITEM INDEX LS_ROWS-ROW_ID.
+
+* 잔액이 0원이라면
+  IF GS_OPEN_ITEM-BALANCE = 0.
+    MESSAGE S148(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+    RETURN.
+  ENDIF.
+
+  CALL SCREEN 110
+    STARTING AT 5 5.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form CLEARING_OPEN_ITEM
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM CLEARING_OPEN_ITEM .
+
+  DATA: LV_ANSWER          TYPE CHAR1,
+        LV_DOCUMENT_NUMBER TYPE CHAR10,
+        LV_EMPLOYEE        TYPE ZTFC_SDT040.
+
+* 사원 정보
+  SELECT SINGLE *
+    INTO CORRESPONDING FIELDS OF LV_EMPLOYEE
+    FROM ZTFC_SDT040
+    WHERE ID = SY-UNAME.
+
+* 지급 금액을 입력하지 않았다면
+  CASE 'X'.
+    WHEN ZSFC_FI_0160-CASH_RBT.
+      IF ZSFC_FI_0160-CASH IS INITIAL.
+        MESSAGE S153(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+        RETURN.
+      ENDIF.
+    WHEN ZSFC_FI_0160-DEPOSIT_RBT.
+      IF ZSFC_FI_0160-DEPOSIT IS INITIAL.
+        MESSAGE S153(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+        RETURN.
+      ENDIF.
+  ENDCASE.
+
+
+* 잔액보다 지급 금액이 크다면
+  CASE 'X'.
+    WHEN ZSFC_FI_0160-CASH_RBT.
+      IF ZSFC_FI_0160-CASH > GS_OPEN_ITEM-BALANCE.
+        MESSAGE S150(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+        RETURN.
+      ENDIF.
+    WHEN ZSFC_FI_0160-DEPOSIT_RBT.
+      IF ZSFC_FI_0160-DEPOSIT > GS_OPEN_ITEM-BALANCE.
+        MESSAGE S150(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+        RETURN.
+      ENDIF.
+  ENDCASE.
+
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      TITLEBAR              = '반제 처리'
+*     DIAGNOSE_OBJECT       = ' '
+      TEXT_QUESTION         = '반제 처리하시겠습니까?'
+      TEXT_BUTTON_1         = '예'
+*     ICON_BUTTON_1         = ' '
+      TEXT_BUTTON_2         = '아니요'
+*     ICON_BUTTON_2         = ' '
+      DISPLAY_CANCEL_BUTTON = ''
+    IMPORTING
+      ANSWER                = LV_ANSWER
+    EXCEPTIONS
+      TEXT_NOT_FOUND        = 1
+      OTHERS                = 2.
+  IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+  IF LV_ANSWER = '2'.
+    RETURN.
+  ENDIF.
+
+* 공급업체 지급 전표 생성
+* 1. 전표 헤더
+
+  CALL FUNCTION 'NUMBER_GET_NEXT'
+    EXPORTING
+      NR_RANGE_NR = '01'
+      OBJECT      = 'ZFC_FI_01'
+      TOYEAR      = SY-DATUM+0(4)
+    IMPORTING
+      NUMBER      = LV_DOCUMENT_NUMBER.
+  IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+  GS_DOCUMENT_HEAER-BELNR = LV_DOCUMENT_NUMBER. " 전표 번호
+  GS_DOCUMENT_HEAER-BKSTAT = '1'. " 전표 상태 - 승인
+  GS_DOCUMENT_HEAER-GJAHR = SY-DATUM+0(4). " 회계연도
+  GS_DOCUMENT_HEAER-BUDAT = SY-DATUM. " 전기일
+  GS_DOCUMENT_HEAER-BLART = 'KZ'. " 전표 유형
+  GS_DOCUMENT_HEAER-BLDAT = SY-DATUM. " 증빙 일자
+  GS_DOCUMENT_HEAER-ERNAME = SY-UNAME. " 생성자
+  GS_DOCUMENT_HEAER-ERDAT = SY-DATUM. " 생성일
+  GS_DOCUMENT_HEAER-ERZET = SY-UZEIT. " 시각
+  GS_DOCUMENT_HEAER-PERNR = LV_EMPLOYEE-PERNR. " 사원번호
+  GS_DOCUMENT_HEAER-WAERS = 'KRW'.
+  GS_DOCUMENT_HEAER-BKTXT = ZSFC_FI_0160-BKTXT. " 적요
+
+  INSERT ZTFC_FIT020 FROM GS_DOCUMENT_HEAER.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE I149(ZFC_DUMPTRUCK) DISPLAY LIKE 'E'.
+    ROLLBACK WORK.
+    RETURN.
+  ENDIF.
+
+* 2. 전표 아이템
+* 2-1 외상 매입금 부채의 감소
+  CLEAR GS_DOCUMENT_ITEM.
+  GS_DOCUMENT_ITEM-BELNR = LV_DOCUMENT_NUMBER. " 전표 번호
+  GS_DOCUMENT_ITEM-BUZEI = 1. " 전표 아이템 번호
+  GS_DOCUMENT_ITEM-LIFNR = GS_OPEN_ITEM-LIFNR. " 공급업체 코드
+  GS_DOCUMENT_ITEM-SKANR = 2000000001. " 계정과목코드 - 외상 매입금
+  GS_DOCUMENT_ITEM-AUGBL = GS_OPEN_ITEM-BELNR. " 반제 전표 번호
+  GS_DOCUMENT_ITEM-BSCHL = 25. " 공급업체 payment 전기키
+  GS_DOCUMENT_ITEM-KOART = 'K'. " 계정유형
+  GS_DOCUMENT_ITEM-WAERS = ZSFC_FI_0160-WAERS. " 통화
+  GS_DOCUMENT_ITEM-SHKZG = 'S'.
+  GS_DOCUMENT_ITEM-SGTXT = '외상 매입금 (부채의 감소)'.
+
+  CASE 'X'. " 금액
+    WHEN ZSFC_FI_0160-CASH_RBT. " 현금 지급이라면
+      GS_DOCUMENT_ITEM-WRBTR = ZSFC_FI_0160-CASH. " 현금 금액
+    WHEN ZSFC_FI_0160-DEPOSIT_RBT. " 보통 예금이라면
+      GS_DOCUMENT_ITEM-WRBTR = ZSFC_FI_0160-DEPOSIT. " 예금 금액
+  ENDCASE.
+
+  INSERT ZTFC_FIT030 FROM GS_DOCUMENT_ITEM.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE I149(ZFC_DUMPTRUCK) DISPLAY LIKE 'E'.
+    ROLLBACK WORK.
+    RETURN.
+  ENDIF.
+
+* 2-2 현금, 보통예금 자산의 감소
+  CLEAR GS_DOCUMENT_ITEM.
+  GS_DOCUMENT_ITEM-BELNR = LV_DOCUMENT_NUMBER. " 전표 번호
+  GS_DOCUMENT_ITEM-BUZEI = 2. " 전표 아이템 번호
+  GS_DOCUMENT_ITEM-LIFNR = GS_OPEN_ITEM-LIFNR. " 공급업체 코드
+  GS_DOCUMENT_ITEM-BSCHL = 50. " 총계정원장 대변 전기키
+  GS_DOCUMENT_ITEM-KOART = 'S'. " 계정유형
+  GS_DOCUMENT_ITEM-WAERS = ZSFC_FI_0160-WAERS. " 통화
+  GS_DOCUMENT_ITEM-SHKZG = 'H'. " 차대변구분
+
+  CASE 'X'. " 갚은 방법과 금액
+    WHEN ZSFC_FI_0160-CASH_RBT. " 현금 지급이라면
+      GS_DOCUMENT_ITEM-SGTXT = '현금으로 갚음 (자산의 감소)'.
+      GS_DOCUMENT_ITEM-SKANR = 1010000001. " 계정과목코드 - 현금
+      GS_DOCUMENT_ITEM-WRBTR = ZSFC_FI_0160-CASH. " 현금 금액
+    WHEN ZSFC_FI_0160-DEPOSIT_RBT. " 예금이라면
+      GS_DOCUMENT_ITEM-SGTXT = '보통예금으로 갚음 (자산의 감소)'.
+      GS_DOCUMENT_ITEM-SKANR = 1010000002. " 계정과목 코드 - 보통예금
+      GS_DOCUMENT_ITEM-WRBTR = ZSFC_FI_0160-DEPOSIT. " 예금 금액
+  ENDCASE.
+
+  INSERT ZTFC_FIT030 FROM GS_DOCUMENT_ITEM.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE I149(ZFC_DUMPTRUCK) DISPLAY LIKE 'E'.
+    ROLLBACK WORK.
+    RETURN.
+  ENDIF.
+
+
+* 3. 반제로 인한 채무액 감소 및 다 갚았다면 반제일 갱신
+  CASE 'X'. " 갚은 방법과 금액
+    WHEN ZSFC_FI_0160-CASH_RBT. " 현금 지급이라면
+      SUBTRACT ZSFC_FI_0160-CASH FROM GS_OPEN_ITEM-BALANCE.
+    WHEN ZSFC_FI_0160-DEPOSIT_RBT. " 예금이라면
+      SUBTRACT ZSFC_FI_0160-DEPOSIT FROM GS_OPEN_ITEM-BALANCE.
+  ENDCASE.
+
+  UPDATE ZTFC_FIT020 " 채무액 감소를 DB에 반영
+    SET BALANCE = GS_OPEN_ITEM-BALANCE
+    WHERE BELNR = GS_OPEN_ITEM-BELNR.
+
+  IF SY-SUBRC <> 0.
+    MESSAGE I149(ZFC_DUMPTRUCK) DISPLAY LIKE 'E'.
+    ROLLBACK WORK.
+    RETURN.
+  ENDIF.
+
+  IF GS_OPEN_ITEM-BALANCE = 0. " 다 갚았다면 반제일 갱신.
+    UPDATE ZTFC_FIT030
+      SET AUGDT = SY-DATUM
+      WHERE BELNR = GS_OPEN_ITEM-BELNR " 전표 번호
+        AND BUZEI = GS_OPEN_ITEM-BUZEI. " 전표 아이템 번호
+
+    IF SY-SUBRC <> 0.
+      MESSAGE I149(ZFC_DUMPTRUCK) DISPLAY LIKE 'E'.
+      ROLLBACK WORK.
+      RETURN.
+    ENDIF.
+  ENDIF.
+
+  PERFORM SEARCH_OPEN_ITEM.
+  MESSAGE S151(ZFC_DUMPTRUCK) WITH GS_OPEN_ITEM-BELNR LV_DOCUMENT_NUMBER.
+  LEAVE TO SCREEN 0.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form RESET_SEARCH_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM RESET_SEARCH_DATA .
+  CLEAR GT_OPEN_ITEM.
+  CLEAR GT_OPEN_ITEM_HISTORY.
+  CLEAR ZSFC_FI_0170.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_FCAT .
+  DATA: LS_ITEM_FCAT TYPE LVC_S_FCAT.
+
+  LS_ITEM_FCAT-FIELDNAME = 'BUZEI'.
+  LS_ITEM_FCAT-COLTEXT = '아이템 번호'.
+  LS_ITEM_FCAT-KEY = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'BSCHL'.
+  LS_ITEM_FCAT-COLTEXT = '전기키'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SKANR'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목 코드'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'GLTXT'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'DEBIT'.
+  LS_ITEM_FCAT-COLTEXT = '차변'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'..
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CREDIT'.
+  LS_ITEM_FCAT-COLTEXT = '대변'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-COLTEXT = '통화'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'LIFNR'.
+  LS_ITEM_FCAT-COLTEXT = '공급업체 코드'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CLITNM'.
+  LS_ITEM_FCAT-COLTEXT = '공급업체명'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SGTXT'.
+  LS_ITEM_FCAT-COLTEXT = '적요'.
+  APPEND LS_ITEM_FCAT TO GT_ITEM_FCAT.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_ITEM_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_ITEM_LAYOUT .
+  GS_ITEM_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_ITEM_LAYOUT-NO_TOOLBAR = 'X'.
+  GS_ITEM_LAYOUT-ZEBRA = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_CLEARING_ITEM_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_CLEARING_ITEM_FCAT .
+  DATA: LS_ITEM_FCAT TYPE LVC_S_FCAT.
+
+  LS_ITEM_FCAT-FIELDNAME = 'BUZEI'.
+  LS_ITEM_FCAT-COLTEXT = '아이템 번호'.
+  LS_ITEM_FCAT-KEY = 'X'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'BSCHL'.
+  LS_ITEM_FCAT-COLTEXT = '전기키'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SKANR'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목 코드'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'GLTXT'.
+  LS_ITEM_FCAT-COLTEXT = '계정과목명'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'DEBIT'.
+  LS_ITEM_FCAT-COLTEXT = '차변'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'..
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CREDIT'.
+  LS_ITEM_FCAT-COLTEXT = '대변'.
+  LS_ITEM_FCAT-CFIELDNAME = 'WAERS'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'WAERS'.
+  LS_ITEM_FCAT-COLTEXT = '통화'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'LIFNR'.
+  LS_ITEM_FCAT-COLTEXT = '공급업체 코드'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'CLITNM'.
+  LS_ITEM_FCAT-COLTEXT = '공급업체명'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+
+  CLEAR LS_ITEM_FCAT.
+  LS_ITEM_FCAT-FIELDNAME = 'SGTXT'.
+  LS_ITEM_FCAT-COLTEXT = '적요'.
+  APPEND LS_ITEM_FCAT TO GT_CLEARING_ITEM_FCAT.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_CLEARING_ITEM_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_CLEARING_ITEM_LAYOUT .
+  GS_CLEARING_ITEM_LAYOUT-CWIDTH_OPT = 'A'.
+  GS_CLEARING_ITEM_LAYOUT-NO_TOOLBAR = 'X'.
+  GS_CLEARING_ITEM_LAYOUT-ZEBRA = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_CLEARING_SUB
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_CLEARING_SUB .
+  CASE 'X'.
+    WHEN ZSFC_FI_0160-CASH_RBT.
+      GV_DYNNR = '0120'.
+    WHEN ZSFC_FI_0160-DEPOSIT_RBT.
+      GV_DYNNR = '0130'.
+  ENDCASE.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Module SET_SEARCH_AGGREGATE OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE SET_SEARCH_AGGREGATE OUTPUT.
+
+  CLEAR ZSFC_FI_0180.
+
+  ZSFC_FI_0180-WAERS = 'KRW'.
+  ZSFC_FI_0180-ALL_CNT = LINES( GT_OPEN_ITEM ).
+  LOOP AT GT_OPEN_ITEM INTO GS_OPEN_ITEM.
+    ADD GS_OPEN_ITEM-BALANCE TO ZSFC_FI_0180-BALANCE. " 잔액
+    ADD GS_OPEN_ITEM-CREAMOUNT TO ZSFC_FI_0180-PAYABLE. " 매입 채무 금액
+
+    IF GS_OPEN_ITEM-CREAMOUNT = GS_OPEN_ITEM-BALANCE. " 미결 : 채무 = 잔액
+      ADD 1 TO ZSFC_FI_0180-OPEN_CNT.
+    ELSEIF GS_OPEN_ITEM-CREAMOUNT <> GS_OPEN_ITEM-BALANCE AND GS_OPEN_ITEM-BALANCE > 0.
+      ADD 1 TO ZSFC_FI_0180-PARTIAL_CNT.
+    ELSEIF GS_OPEN_ITEM-BALANCE = 0. " 완전 반제
+      ADD 1 TO ZSFC_FI_0180-CLEARED_CNT.
+    ENDIF.
+
+  ENDLOOP.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Form SET_INVOICE_ITEM_FCAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_INVOICE_ITEM_FCAT .
+  DATA: LS_ITEM_FCAT TYPE LVC_S_FCAT.
+
+  LS_ITEM_FCAT-FIELDNAME = 'POSNR'.
+  LS_ITEM_FCAT-COLTEXT = '송장 아이템 번호'.
+  APPEND LS_ITEM_FCAT TO GT_INVOICE_ITEM_FCAT.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_INVOICE_ITEM_LAYOUT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_INVOICE_ITEM_LAYOUT .
+  GS_INVOICE_ITEM_LAYOUT-ZEBRA = 'X'.
+  GS_INVOICE_ITEM_LAYOUT-CWIDTH_OPT = 'X'.
+ENDFORM.
