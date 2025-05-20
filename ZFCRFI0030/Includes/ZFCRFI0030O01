@@ -1,0 +1,621 @@
+*&---------------------------------------------------------------------*
+*& Include          ZFCRFI0030O01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0100 OUTPUT.
+  SET PF-STATUS 'S100'.
+  SET TITLEBAR 'T100' WITH GV_YEAR.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_TREE OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_TREE OUTPUT.
+
+  DATA: LT_EVENTS TYPE CNTL_SIMPLE_EVENTS,
+        LS_EVENT  TYPE CNTL_SIMPLE_EVENT.
+
+  IF GO_TREE_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_TREE_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'TREE_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*   MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*              WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_ALV_TREE
+      EXPORTING
+        PARENT                      = GO_TREE_CONTAINER
+        NODE_SELECTION_MODE         = CL_GUI_SIMPLE_TREE=>NODE_SEL_MODE_MULTIPLE
+      EXCEPTIONS
+        LIFETIME_ERROR              = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        FAILED                      = 4
+        ILLEGAL_NODE_SELECTION_MODE = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM INIT_TREE_HIERARCHY.
+    CREATE OBJECT GO_NODE_EVENT_HANDLER.
+    SET HANDLER:
+      GO_NODE_EVENT_HANDLER->ON_NODE_DOUBLE_CLICK FOR GO_ALV_TREE.
+
+    LS_EVENT-EVENTID = CL_GUI_SIMPLE_TREE=>EVENTID_NODE_DOUBLE_CLICK.
+    LS_EVENT-APPL_EVENT = 'X'.
+    APPEND LS_EVENT TO LT_EVENTS.
+
+    CALL METHOD GO_ALV_TREE->SET_REGISTERED_EVENTS
+      EXPORTING
+        EVENTS                    = LT_EVENTS
+      EXCEPTIONS
+        CNTL_ERROR                = 1
+        CNTL_SYSTEM_ERROR         = 2
+        ILLEGAL_EVENT_COMBINATION = 3
+        OTHERS                    = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+
+  ENDIF.
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_CAPITAL
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_CAPITAL .
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 3. 자본
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_14'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '자본'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '300'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_14'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_REVENUE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_REVENUE .
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 4. 수익
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_15'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '수익'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 4-1 매출수익
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_16'.
+  GS_NODE-RELATKEY = 'DIR_15'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '매출수익'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '400'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_16'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 4-1 기타수익
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_17'.
+  GS_NODE-RELATKEY = 'DIR_15'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '기타수익'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '401'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_17'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_TREE_EXPENSE
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_TREE_EXPENSE .
+
+  DATA: LT_ACCOUNT TYPE TABLE OF ZTFC_FIT010,
+        LS_ACCOUNT LIKE LINE OF LT_ACCOUNT.
+
+* 5. 비용
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_18'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '비용'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+* 5-1 매출원가
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_19'.
+  GS_NODE-RELATKEY = 'DIR_18'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '매출원가'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '500'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_19'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 5-1 판매관리비
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_20'.
+  GS_NODE-RELATKEY = 'DIR_18'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '판매관리비'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '501'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_20'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+* 5-1 기타비용
+  CLEAR GS_NODE.
+  GS_NODE-NODE_KEY = 'DIR_21'.
+  GS_NODE-RELATKEY = 'DIR_18'.
+  GS_NODE-ISFOLDER = 'X'.
+  GS_NODE-TEXT = '기타비용'.
+  GS_NODE-EXPANDER = 'X'.
+  APPEND GS_NODE TO GT_NODE.
+
+  CLEAR LT_ACCOUNT.
+  LOOP AT GT_ACCOUNT INTO GS_ACCOUNT WHERE SKANR+0(3) = '502'.
+    APPEND GS_ACCOUNT TO LT_ACCOUNT.
+  ENDLOOP.
+
+  LOOP AT LT_ACCOUNT INTO LS_ACCOUNT.
+    CLEAR GS_NODE.
+    GS_NODE-NODE_KEY = LS_ACCOUNT-SKANR.
+    GS_NODE-RELATKEY = 'DIR_21'.
+    GS_NODE-TEXT = LS_ACCOUNT-GLTXT.
+    APPEND GS_NODE TO GT_NODE.
+  ENDLOOP.
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Module INIT_BALANCE_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_BALANCE_ALV OUTPUT.
+
+  IF GO_BALANCE_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_BALANCE_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'BALANCE_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_BALANCE_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_BALANCE_CONTAINER
+        I_APPL_EVENTS     = 'X'
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_BALANCE_FCAT.
+    PERFORM SET_BALANCE_LAYOUT.
+
+    SET HANDLER:
+      LCL_BALANCE_EVENT_HANDLER=>ON_HOTSPOT_CLICK FOR GO_BALANCE_ALV_GRID.
+    CALL METHOD GO_BALANCE_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_BALANCE_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_DATA
+        IT_FIELDCATALOG               = GT_BALANCE_FCAT
+*       IT_SORT                       =
+*       IT_FILTER                     =
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+
+  ELSE.
+
+    IF LINES( GT_DATA ) = 0.
+      GS_BALANCE_LAYOUT-GRID_TITLE = SPACE.
+      CALL METHOD GO_BALANCE_ALV_GRID->SET_FRONTEND_LAYOUT
+        EXPORTING
+          IS_LAYOUT = GS_BALANCE_LAYOUT.
+    ENDIF.
+
+    CALL METHOD GO_BALANCE_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_HISTORY_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_HISTORY_ALV OUTPUT.
+
+  IF GO_HISTORY_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_HISTORY_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'HISTORY_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_HISTORY_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_HISTORY_CONTAINER
+*       I_APPL_EVENTS     = SPACE
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_HISTORY_FCAT.
+    PERFORM SET_HISTORY_LAYOUT.
+
+    SET HANDLER:
+      LCL_HISTORY_EVENT_HANDLER=>ON_HOTSPOT_CLICK FOR GO_HISTORY_ALV_GRID.
+
+    CALL METHOD GO_HISTORY_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_HISTORY_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_HISTORY
+        IT_FIELDCATALOG               = GT_HISTORY_FCAT
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ELSE.
+
+    IF LINES( GT_HISTORY ) = 0.
+*     ALV TItle 설정
+      GS_HISTORY_LAYOUT-GRID_TITLE = SPACE.
+      CALL METHOD GO_HISTORY_ALV_GRID->SET_FRONTEND_LAYOUT
+        EXPORTING
+          IS_LAYOUT = GS_HISTORY_LAYOUT.
+    ENDIF.
+
+    CALL METHOD GO_HISTORY_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_CHART_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_CHART_ALV OUTPUT.
+
+  IF GO_CHART_CONTAINER IS INITIAL.
+    CREATE OBJECT GO_CHART_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'CHART_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_CHART
+      EXPORTING
+        PARENT     = GO_CHART_CONTAINER
+      EXCEPTIONS
+        CNTL_ERROR = 1
+        OTHERS     = 2.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CALL METHOD GO_CHART_CONTAINER->SET_VISIBLE( EXPORTING VISIBLE = ABAP_FALSE ).
+  ENDIF.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0110 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0110 OUTPUT.
+  SET PF-STATUS 'S110'.
+  SET TITLEBAR 'T110' WITH GS_HISTORY-BELNR.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_HEADER_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_HEADER_INFO OUTPUT.
+
+  SELECT SINGLE A~BELNR A~GJAHR A~PERNR A~BLART A~BUDAT A~BKTXT B~PERNAME
+    INTO CORRESPONDING FIELDS OF ZSFC_FI_0100
+    FROM ZTFC_FIT020 AS A
+    LEFT OUTER JOIN ZTFC_SDT040 AS B ON A~PERNR = B~PERNR
+    WHERE BELNR = GS_HISTORY-BELNR.
+
+  CALL FUNCTION 'RKE_DOMVALUE_TEXT_GET'
+    EXPORTING
+      I_DOMA             = 'ZDFC_BLART'
+      I_DOMVALUE         = ZSFC_FI_0100-BLART
+      I_LANGU            = SY-LANGU
+    IMPORTING
+      E_DDTEXT           = ZSFC_FI_0100-BLART_TXT
+    EXCEPTIONS
+      DOMNAME_NOT_FOUND  = 1
+      DOMVALUE_NOT_FOUND = 2
+      OTHERS             = 3.
+  IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_ITEM_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_ITEM_ALV OUTPUT.
+
+  IF GO_DOC_ITEM_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_DOC_ITEM_CONTAINER
+      EXPORTING
+        CONTAINER_NAME              = 'DOC_ITEM_AREA'
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_DOC_ITEM_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_DOC_ITEM_CONTAINER
+*       I_APPL_EVENTS     = SPACE
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_DOC_ITEM_FCAT.
+    PERFORM SET_DOC_ITEM_LAYOUT.
+
+    CALL METHOD GO_DOC_ITEM_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_DOC_ITEM_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_DOC_ITEM
+        IT_FIELDCATALOG               = GT_DOC_ITEM_FCAT
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ELSE.
+
+    CALL METHOD GO_DOC_ITEM_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED       = 1
+        OTHERS         = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ENDIF.
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_ITEM_INFO OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_ITEM_INFO OUTPUT.
+
+  SELECT A~BELNR A~BUZEI A~LIFNR A~KUNNR A~SKANR A~BSCHL A~KOART A~WRBTR A~WAERS
+         A~SHKZG A~SGTXT
+         B~GLTXT
+         C~CLITNM
+         D~CUSTNAME
+    INTO CORRESPONDING FIELDS OF TABLE GT_DOC_ITEM
+    FROM ZTFC_FIT030 AS A
+    INNER JOIN ZTFC_FIT010 AS B ON A~SKANR = B~SKANR
+    LEFT OUTER JOIN ZTFC_MMT020 AS C ON A~LIFNR = C~LIFNR
+    LEFT OUTER JOIN ZTFC_SDT010 AS D ON D~KUNNR = A~KUNNR
+    WHERE BELNR = GS_HISTORY-BELNR.
+
+  LOOP AT GT_DOC_ITEM INTO GS_DOC_ITEM.
+
+    CASE GS_DOC_ITEM-SHKZG.
+      WHEN 'S'.
+        GS_DOC_ITEM-DEBIT = GS_DOC_ITEM-WRBTR.
+      WHEN 'H'.
+        GS_DOC_ITEM-CREDIT = GS_DOC_ITEM-WRBTR.
+    ENDCASE.
+
+    MODIFY GT_DOC_ITEM FROM GS_DOC_ITEM.
+  ENDLOOP.
+
+  SORT GT_DOC_ITEM BY BUZEI ASCENDING.
+
+ENDMODULE.
