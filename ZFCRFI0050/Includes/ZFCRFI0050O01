@@ -1,0 +1,248 @@
+*&---------------------------------------------------------------------*
+*& Include          ZFCRFI0050O01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0100 OUTPUT.
+  SET PF-STATUS 'S100'.
+  SET TITLEBAR 'T100'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_SUB_SCREEN OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_SUB_SCREEN OUTPUT.
+
+  CASE 'X'.
+    WHEN ZSFC_FI_0220-ALL_RBT.
+      GV_CONDITION_DYNNR = '0150'.
+      GV_COMPANY_DYNNR = '0160'.
+    WHEN ZSFC_FI_0220-KUNNR_RBT.
+      GV_CONDITION_DYNNR = '0110'.
+      GV_COMPANY_DYNNR = '0130'.
+    WHEN ZSFC_FI_0220-LIFNR_RBT.
+      GV_CONDITION_DYNNR = '0120'.
+      GV_COMPANY_DYNNR = '0140'.
+    WHEN OTHERS.
+      GV_CONDITION_DYNNR = '0150'.
+      GV_COMPANY_DYNNR = '0160'.
+  ENDCASE.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_SUPPLIER_DATA OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_SUPPLIER_DATA OUTPUT.
+
+  IF ZSFC_FI_0220-LIFNR_RBT = 'X' AND ZSFC_FI_0220-LIFNR IS NOT INITIAL.
+
+    SELECT SINGLE LIFNR CLITNM CLITTY CLITFD STCD1
+                  CEONM ADRNR CLITTEL CLITEML
+      INTO CORRESPONDING FIELDS OF ZTFC_MMT020
+      FROM ZTFC_MMT020
+      WHERE LIFNR = ZSFC_FI_0220-LIFNR.
+
+  ENDIF.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module GET_CLIENT_DATA OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE GET_CLIENT_DATA OUTPUT.
+
+  IF ZSFC_FI_0220-KUNNR_RBT = 'X' AND ZSFC_FI_0220-KUNNR IS NOT INITIAL.
+    CLEAR ZSFC_FI_0220-CUSTNAME.
+    CLEAR ZSFC_FI_0120.
+
+    SELECT SINGLE KUNNR CUSTNAME TELF1
+                  EMAIL ADDR1 CUSTTYPE
+      INTO CORRESPONDING FIELDS OF ZSFC_FI_0120
+      FROM ZTFC_SDT010
+      WHERE KUNNR = ZSFC_FI_0220-KUNNR.
+
+    IF SY-SUBRC <> 0.
+      MESSAGE S122(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+
+    CALL FUNCTION 'RKE_DOMVALUE_TEXT_GET'
+      EXPORTING
+        I_DOMA             = 'ZDFC_CUSTTYPE'
+        I_DOMVALUE         = ZSFC_FI_0120-CUSTTYPE
+        I_LANGU            = SY-LANGU
+      IMPORTING
+        E_DDTEXT           = ZSFC_FI_0120-CUSTTYPE_TXT
+      EXCEPTIONS
+        DOMNAME_NOT_FOUND  = 1
+        DOMVALUE_NOT_FOUND = 2
+        OTHERS             = 3.
+    IF SY-SUBRC <> 0.
+      MESSAGE 'DOMVALUE ERROR' TYPE 'S' DISPLAY LIKE 'W'.
+    ENDIF.
+
+
+  ENDIF.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module INIT_INOUT_ALV OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE INIT_INOUT_ALV OUTPUT.
+
+  IF GO_INOUT_DOCKING_CONTAINER IS INITIAL.
+
+    CREATE OBJECT GO_INOUT_DOCKING_CONTAINER
+      EXPORTING
+*       PARENT                      =
+        REPID                       = SY-REPID
+        DYNNR                       = SY-DYNNR
+        SIDE                        = CL_GUI_DOCKING_CONTAINER=>DOCK_AT_BOTTOM
+        EXTENSION                   = 300
+      EXCEPTIONS
+        CNTL_ERROR                  = 1
+        CNTL_SYSTEM_ERROR           = 2
+        CREATE_ERROR                = 3
+        LIFETIME_ERROR              = 4
+        LIFETIME_DYNPRO_DYNPRO_LINK = 5
+        OTHERS                      = 6.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CREATE OBJECT GO_INOUT_SPLIT_CONTAINER
+      EXPORTING
+        PARENT            = GO_INOUT_DOCKING_CONTAINER
+        ROWS              = 1
+        COLUMNS           = 2
+      EXCEPTIONS
+        CNTL_ERROR        = 1
+        CNTL_SYSTEM_ERROR = 2
+        OTHERS            = 3.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    CALL METHOD GO_INOUT_SPLIT_CONTAINER->GET_CONTAINER
+      EXPORTING
+        ROW       = 1
+        COLUMN    = 1
+      RECEIVING
+        CONTAINER = GO_INOUT_CONTAINER.
+
+    CALL METHOD GO_INOUT_SPLIT_CONTAINER->GET_CONTAINER
+      EXPORTING
+        ROW       = 1
+        COLUMN    = 2
+      RECEIVING
+        CONTAINER = GO_DOCUMENT_ITEM_CONTAINER.
+
+*   입출금 내역
+    CREATE OBJECT GO_INOUT_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_INOUT_CONTAINER
+*       I_APPL_EVENTS     = SPACE
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_INOUT_FCAT.
+    PERFORM SET_INOUT_LAYOUT.
+
+    SET HANDLER:
+      LCL_ITEM_EVENT_HANDLER=>ON_HOTSPOT_CLICK FOR GO_INOUT_ALV_GRID.
+
+    CALL METHOD GO_INOUT_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_INOUT_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_INOUT
+        IT_FIELDCATALOG               = GT_INOUT_FCAT
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+*   전표 참조
+    CREATE OBJECT GO_DOCUMENT_ITEM_ALV_GRID
+      EXPORTING
+        I_PARENT          = GO_DOCUMENT_ITEM_CONTAINER
+      EXCEPTIONS
+        ERROR_CNTL_CREATE = 1
+        ERROR_CNTL_INIT   = 2
+        ERROR_CNTL_LINK   = 3
+        ERROR_DP_CREATE   = 4
+        OTHERS            = 5.
+    IF SY-SUBRC <> 0.
+*     MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*                WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+    ENDIF.
+
+    PERFORM SET_DOCUMENT_ITEM_FCAT.
+    PERFORM SET_DOCUMENT_ITEM_LAYOUT.
+
+    CALL METHOD GO_DOCUMENT_ITEM_ALV_GRID->SET_TABLE_FOR_FIRST_DISPLAY
+      EXPORTING
+        IS_LAYOUT                     = GS_DOCUMENT_ITEM_LAYOUT
+      CHANGING
+        IT_OUTTAB                     = GT_DOCUMENT_ITEM
+        IT_FIELDCATALOG               = GT_DOCUMENT_ITEM_FCAT
+      EXCEPTIONS
+        INVALID_PARAMETER_COMBINATION = 1
+        PROGRAM_ERROR                 = 2
+        TOO_MANY_LINES                = 3
+        OTHERS                        = 4.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  ELSE.
+
+    CALL METHOD GO_INOUT_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+  IF LINES( GT_DOCUMENT_ITEM ) = 0.
+    GS_DOCUMENT_ITEM_LAYOUT-GRID_TITLE = '참조 전표 아이템'.
+    CALL METHOD GO_DOCUMENT_ITEM_ALV_GRID->SET_FRONTEND_LAYOUT
+      EXPORTING
+        IS_LAYOUT = GS_DOCUMENT_ITEM_LAYOUT.
+  ENDIF.
+
+    CALL METHOD GO_DOCUMENT_ITEM_ALV_GRID->REFRESH_TABLE_DISPLAY
+      EXCEPTIONS
+        FINISHED = 1
+        OTHERS   = 2.
+    IF SY-SUBRC <> 0.
+*     Implement suitable error handling here
+    ENDIF.
+
+
+  ENDIF.
+
+ENDMODULE.
