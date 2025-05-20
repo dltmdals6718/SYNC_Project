@@ -1,0 +1,244 @@
+*&---------------------------------------------------------------------*
+*& Include          MZFCFI0030I01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0100 INPUT.
+  CASE OK_CODE.
+    WHEN 'BACK'.
+      LEAVE TO SCREEN 0.
+    WHEN 'SEARCH'.
+      PERFORM SEARCH_OPEN_ITEM.
+    WHEN 'RESET'.
+      PERFORM RESET_SEARCH_DATA.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  EXIT  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE EXIT INPUT.
+  CASE OK_CODE.
+    WHEN 'CANCEL'.
+      LEAVE TO SCREEN 0.
+    WHEN 'EXIT'.
+      LEAVE PROGRAM.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Form SEARCH_OPEN_ITEM
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SEARCH_OPEN_ITEM .
+
+  DATA: RT_LIFNR TYPE RANGE OF ZTFC_FIT030-LIFNR,
+        RS_LIFNR LIKE LINE OF RT_LIFNR,
+        RT_GJAHR TYPE RANGE OF ZTFC_FIT020-GJAHR,
+        RS_GJAHR LIKE LINE OF RT_GJAHR,
+        RT_BUDAT TYPE RANGE OF ZTFC_FIT020-BUDAT,
+        RS_BUDAT LIKE LINE OF RT_BUDAT.
+
+  DATA: LV_START_BUDAT TYPE ZSFC_FI_0170-START_BUDAT,
+        LV_END_BUDAT   TYPE ZSFC_FI_0170-END_BUDAT.
+
+
+  CLEAR GT_OPEN_ITEM_HISTORY.
+
+  IF ZSFC_FI_0170-LIFNR IS INITIAL.
+    CLEAR ZSFC_FI_0170-CLITNM.
+  ENDIF.
+
+  CLEAR ZSFC_FI_0180. " 조회 결과 정보
+
+  LV_START_BUDAT = ZSFC_FI_0170-START_BUDAT.
+  LV_END_BUDAT = ZSFC_FI_0170-END_BUDAT.
+
+* 공급업체 코드
+  IF ZSFC_FI_0170-LIFNR IS NOT INITIAL.
+    RS_LIFNR-SIGN = 'I'.
+    RS_LIFNR-OPTION = 'EQ'.
+    RS_LIFNR-LOW = ZSFC_FI_0170-LIFNR.
+    APPEND RS_LIFNR TO RT_LIFNR.
+  ENDIF.
+
+* 회계연도
+  IF ZSFC_FI_0170-GJAHR IS NOT INITIAL.
+    RS_GJAHR-SIGN = 'I'.
+    RS_GJAHR-OPTION = 'EQ'.
+    RS_GJAHR-LOW = ZSFC_FI_0170-GJAHR.
+    APPEND RS_GJAHR TO RT_GJAHR.
+  ENDIF.
+
+* 전기일자
+  IF LV_START_BUDAT IS NOT INITIAL AND LV_END_BUDAT IS INITIAL. "  = START
+    RS_BUDAT-SIGN = 'I'.
+    RS_BUDAT-OPTION = 'EQ'.
+    RS_BUDAT-LOW = LV_START_BUDAT.
+    APPEND RS_BUDAT TO RT_BUDAT.
+  ELSEIF LV_START_BUDAT IS NOT INITIAL AND LV_END_BUDAT IS NOT INITIAL. " = START ~ END
+    IF LV_START_BUDAT > LV_END_BUDAT. " FROM TO 에서 FROM의 날짜가 더 크다면
+      MESSAGE S135(ZFC_DUMPTRUCK) DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+    RS_BUDAT-SIGN = 'I'.
+    RS_BUDAT-OPTION = 'BT'.
+    RS_BUDAT-LOW = LV_START_BUDAT.
+    RS_BUDAT-HIGH = LV_END_BUDAT.
+    APPEND RS_BUDAT TO RT_BUDAT.
+  ELSEIF LV_START_BUDAT IS INITIAL AND LV_END_BUDAT IS NOT INITIAL. " = ~ END
+    RS_BUDAT-SIGN = 'I'.
+    RS_BUDAT-OPTION ='LE'.
+    RS_BUDAT-LOW = LV_END_BUDAT.
+    APPEND RS_BUDAT TO RT_BUDAT.
+  ENDIF.
+
+* 전표 헤더에 전기키 31인 아이템을 조인해서 조회
+  SELECT A~BELNR A~GJAHR A~BUDAT A~BLART A~BLDAT
+         A~BALANCE A~WAERS A~BKTXT A~INVNR A~PERNR
+         B~BUZEI B~LIFNR B~AUGDT B~WRBTR AS CREAMOUNT
+         C~CLITNM D~PERNAME
+    INTO CORRESPONDING FIELDS OF TABLE GT_OPEN_ITEM
+    FROM ZTFC_FIT020 AS A
+    INNER JOIN ZTFC_FIT030 AS B ON A~BELNR = B~BELNR
+    LEFT OUTER JOIN ZTFC_MMT020 AS C ON B~LIFNR = C~LIFNR
+    LEFT OUTER JOIN ZTFC_SDT040 AS D ON A~PERNR = D~PERNR
+    WHERE A~BKSTAT = '1' " 승인된 전표
+      AND A~CRESTAT = '1' " 신용 거래 발생
+      AND A~BLART = 'KR' " Vender Invoice
+      AND B~BSCHL = 31 " vender invoice 전기키
+      AND B~LIFNR IN RT_LIFNR " 공급업체 코드
+      AND A~GJAHR IN RT_GJAHR " 회계연도
+      AND A~BUDAT IN RT_BUDAT. " 전기일
+
+
+  CASE ZSFC_FI_0170-CLEARSTAT.
+    WHEN '0'. " 미결 항목 = 외상액과 잔액이 같은것 : 외상액과 잔액이 다른것(부분반제, 완전반제)을 지움
+      LOOP AT GT_OPEN_ITEM INTO GS_OPEN_ITEM.
+        IF GS_OPEN_ITEM-CREAMOUNT <> GS_OPEN_ITEM-BALANCE.
+          DELETE TABLE GT_OPEN_ITEM FROM GS_OPEN_ITEM.
+        ENDIF.
+      ENDLOOP.
+    WHEN '1'. " 부분 반제 : 외상액과 잔액이 같은것(미결) 또는 잔액이 0인것(완전반제)을 지움
+      LOOP AT GT_OPEN_ITEM INTO GS_OPEN_ITEM.
+        IF GS_OPEN_ITEM-CREAMOUNT = GS_OPEN_ITEM-BALANCE OR GS_OPEN_ITEM-BALANCE = 0.
+          DELETE TABLE GT_OPEN_ITEM FROM GS_OPEN_ITEM.
+        ENDIF.
+      ENDLOOP.
+    WHEN '2'. " 완전 반제 : 외상액이 0이 아닌것(미결, 부분반제)을 지움
+      DELETE GT_OPEN_ITEM WHERE BALANCE <> 0.
+  ENDCASE.
+
+  IF LINES( GT_OPEN_ITEM ) = 0.
+    MESSAGE S116(ZFC_DUMPTRUCK).
+    RETURN.
+  ENDIF.
+
+* 신호등, 지급기한!!@!@!@!@!@!@!@!@!@!@!@!@ 언제어떻게
+  LOOP AT GT_OPEN_ITEM INTO GS_OPEN_ITEM.
+
+    IF GS_OPEN_ITEM-CREAMOUNT = GS_OPEN_ITEM-BALANCE. " 미결
+      GS_OPEN_ITEM-LIGHT = 1.
+    ELSEIF GS_OPEN_ITEM-CREAMOUNT <> GS_OPEN_ITEM-BALANCE AND GS_OPEN_ITEM-BALANCE > 0.
+      GS_OPEN_ITEM-LIGHT = 2.
+    ELSEIF GS_OPEN_ITEM-BALANCE = 0. " 완전 반제
+      GS_OPEN_ITEM-LIGHT = 3.
+    ENDIF.
+
+    MODIFY GT_OPEN_ITEM FROM GS_OPEN_ITEM.
+
+  ENDLOOP.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0110  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0110 INPUT.
+  CASE OK_CODE.
+    WHEN 'CANCEL'.
+      LEAVE TO SCREEN 0.
+    WHEN 'CLEARING'. " 반제 처리
+      PERFORM CLEARING_OPEN_ITEM.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0120  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0120 INPUT.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0130  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0130 INPUT.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0140  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0140 INPUT.
+  CASE OK_CODE.
+    WHEN 'OKAY'.
+      LEAVE TO SCREEN 0.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0150  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0150 INPUT.
+  CASE OK_CODE.
+    WHEN 'OKAY'.
+      LEAVE TO SCREEN 0.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0160  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0160 INPUT.
+  CASE OK_CODE.
+    WHEN 'OKAY'.
+      LEAVE TO SCREEN 0.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0170  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0170 INPUT.
+  CASE OK_CODE.
+    WHEN 'OKAY'.
+      LEAVE TO SCREEN 0.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0180  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0180 INPUT.
+  CASE OK_CODE.
+    WHEN 'OKAY'.
+      LEAVE TO SCREEN 0.
+  ENDCASE.
+ENDMODULE.
