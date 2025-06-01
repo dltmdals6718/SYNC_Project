@@ -1,4 +1,4 @@
-# SYNC_Project
+# SYNC_Project 프로그램 개발 코드
 SAP Young Next Cloud Academy 6기 프로젝트
 
 1. SAPMZFCFI0010 -> [FI] 전표 프로그램 </br>
