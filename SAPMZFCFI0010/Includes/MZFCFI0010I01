@@ -21,8 +21,9 @@ MODULE USER_COMMAND_0100 INPUT.
       PERFORM SEARCH_HEADER_DATA.
     WHEN 'RESET'.
       PERFORM RESET_SEARCH_HEADER_CONDITION.
+    WHEN 'BKSTAT'.
+      PERFORM SELECT_BKSTAT.
   ENDCASE.
-
 
 ENDMODULE.
 *&---------------------------------------------------------------------*
