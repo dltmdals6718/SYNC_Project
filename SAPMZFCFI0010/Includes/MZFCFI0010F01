@@ -121,6 +121,7 @@ FORM SAVE_DOCUMENT .
     ZTFC_FIT020-ERNAME = SY-UNAME.
     ZTFC_FIT020-ERDAT = SY-DATUM.
     ZTFC_FIT020-ERZET = SY-UZEIT.
+    ZTFC_FIT020-REVSTAT = '0'.
     INSERT ZTFC_FIT020 FROM ZTFC_FIT020.
 
     IF SY-SUBRC <> 0.
@@ -479,7 +480,9 @@ FORM SEARCH_HEADER_DATA .
       AND BKSTAT IN RT_BKSTAT
       AND GJAHR IN RT_GJAHR
       AND BLART IN RT_BLART
-      AND BUDAT IN RT_BUDAT.
+      AND BUDAT IN RT_BUDAT
+      AND REVSTAT <> '1'
+      AND STBLG = ''.
 
   IF SY-SUBRC <> 0.
     MESSAGE S116(ZFC_DUMPTRUCK).
@@ -873,28 +876,12 @@ FORM REJECT_HEADER_OKAY .
     CALL FUNCTION 'POPUP_TO_CONFIRM'
       EXPORTING
         TITLEBAR              = '전표 반려'
-*       DIAGNOSE_OBJECT       = ' '
         TEXT_QUESTION         = '전표를 반려하시겠습니까?'
         TEXT_BUTTON_1         = '예'
-*       ICON_BUTTON_1         = ' '
         TEXT_BUTTON_2         = '아니요'
-*       ICON_BUTTON_2         = ' '
-*       DEFAULT_BUTTON        = '1'
         DISPLAY_CANCEL_BUTTON = ''
-*       USERDEFINED_F1_HELP   = ' '
-*       START_COLUMN          = 250
-*       START_ROW             = 6
-*       POPUP_TYPE            =
-*       IV_QUICKINFO_BUTTON_1 = ' '
-*       IV_QUICKINFO_BUTTON_2 = ' '
       IMPORTING
-        ANSWER                = LV_ANSWER
-*       TABLES
-*       PARAMETER             =
-*       EXCEPTIONS
-*       TEXT_NOT_FOUND        = 1
-*       OTHERS                = 2
-      .
+        ANSWER                = LV_ANSWER.
     IF SY-SUBRC <> 0.
 * Implement suitable error handling here
     ENDIF.
@@ -906,8 +893,8 @@ FORM REJECT_HEADER_OKAY .
                          WHERE BELNR = ZTFC_FIT020-BELNR.
 
       IF SY-SUBRC <> 0.
-        MESSAGE S137(ZFC_DUMPTRUCK) DISPLAY LIKE 'E'.
         ROLLBACK WORK.
+        MESSAGE S137(ZFC_DUMPTRUCK) DISPLAY LIKE 'E'.
         RETURN.
       ENDIF.
 
@@ -1262,4 +1249,20 @@ ENDFORM.
 FORM SET_REJECT_ITEM_LAYOUT .
   GS_REJECT_ITEM_LAYOUT-CWIDTH_OPT = 'A'.
   GS_REJECT_ITEM_LAYOUT-ZEBRA = 'X'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SELECT_BKSTAT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SELECT_BKSTAT .
+  CASE ZSFC_FI_0030-BKSTAT.
+    WHEN '0' OR '2'. " 미승인, 반려
+      CLEAR ZSFC_FI_0030-START_BUDAT. " 시작 전기일
+      CLEAR ZSFC_FI_0030-END_BUDAT. " 종료 전기일
+    WHEN OTHERS. " 그외
+  ENDCASE.
 ENDFORM.
